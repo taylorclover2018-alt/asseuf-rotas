@@ -221,97 +221,85 @@ pagina = st.sidebar.radio(
     ["🏠 Início", "🧮 Cadastro e Cálculo", "📊 Relatórios e Gráficos"]
 )
 
-# ============================================================
-# PÁGINA 1 — INÍCIO
-# ============================================================
-if pagina == "🏠 Início":
-    st.markdown("<h1>Bem-vindo ao Sistema da ASSEUF</h1>", unsafe_allow_html=True)
+<p>
+    Este sistema foi desenvolvido para garantir uma divisão <b>justa, transparente e auditável</b> 
+    do auxílio financeiro entre as rotas <b>7 Lagoas</b> e <b>Curvelo</b>, refletindo o custo real 
+    de operação de cada uma.
+</p>
 
-    st.markdown("""
-<div class="elevated-card">
-    <div class="section-title">Visão Geral</div>
-    <h2>Modelo de Divisão do Auxílio entre as Rotas</h2>
+<div class="divider"></div>
 
-    <p>
-        Este sistema foi desenvolvido para garantir uma divisão <b>justa, transparente e auditável</b> 
-        do auxílio financeiro entre as rotas <b>7 Lagoas</b> e <b>Curvelo</b>, refletindo o custo real 
-        de operação de cada uma.
-    </p>
+<h3>1. Proporcionalidade pelas Diárias Rodadas</h3>
+<p>
+    A base da divisão é o número de <b>diárias rodadas</b> por cada rota no mês.
+    Meses com calendários acadêmicos diferentes entre as rotas (feriados locais, recessos,
+    semanas de prova, ajustes de calendário) são automaticamente contemplados, pois o sistema
+    considera o número real de dias em que cada rota operou.
+</p>
 
-    <div class="divider"></div>
+<div class="divider"></div>
 
-    <h3>1. Proporcionalidade pelas Diárias Rodadas</h3>
-    <p>
-        A base da divisão é o número de <b>diárias rodadas</b> por cada rota no mês.
-        Meses com calendários acadêmicos diferentes entre as rotas (feriados locais, recessos,
-        semanas de prova, ajustes de calendário) são automaticamente contemplados, pois o sistema
-        considera o número real de dias em que cada rota operou.
-    </p>
+<h3>2. Desconto de 10% sobre as Passagens (Nova Regra)</h3>
+<p>
+    Cada rota contribui com <b>10% do valor arrecadado em passagens</b>.
+    Esse desconto é aplicado <b>individualmente</b> em cada rota, e não no total combinado.
+</p>
 
-    <div class="divider"></div>
+<ul>
+    <li>O desconto é subtraído do <b>bruto da própria rota</b>;</li>
+    <li>O auxílio <b>não perde valor</b> — ele é dividido normalmente;</li>
+    <li>As passagens líquidas são calculadas como:<br>
+        <b>Passagens totais da rota – 10% da própria rota</b>;</li>
+    <li>O líquido final considera esse ajuste antes da divisão pelos alunos.</li>
+</ul>
 
-    <h3>2. Desconto de 10% sobre as Passagens (Nova Regra)</h3>
-    <p>
-        Cada rota contribui com <b>10% do valor arrecadado em passagens</b>.
-        Esse desconto é aplicado <b>individualmente</b> em cada rota, e não no total combinado.
-    </p>
+<p>
+    Essa regra torna o sistema mais equilibrado, justo e proporcional à arrecadação real de cada rota.
+</p>
 
-    <ul>
-        <li>O desconto é subtraído do <b>bruto da própria rota</b>;</li>
-        <li>O auxílio <b>não perde valor</b> — ele é dividido normalmente;</li>
-        <li>As passagens líquidas são calculadas como:<br>
-            <b>Passagens totais da rota – 10% da própria rota</b>;</li>
-        <li>O líquido final considera esse ajuste antes da divisão pelos alunos.</li>
-    </ul>
+<div class="divider"></div>
 
-    <p>
-        Essa regra torna o sistema mais equilibrado, justo e proporcional à arrecadação real de cada rota.
-    </p>
+<h3>3. Regra de Compensação 70% / 30%</h3>
+<p>
+    Quando uma rota roda mais diárias que a outra, ela não recebe 100% da diferença.
+    Em vez disso, aplica-se a regra:
+</p>
 
-    <div class="divider"></div>
+<ul>
+    <li>A rota que rodou mais recebe <b>70%</b> da diária excedente;</li>
+    <li>A rota que rodou menos recebe <b>30%</b> da diária excedente.</li>
+</ul>
 
-    <h3>3. Regra de Compensação 70% / 30%</h3>
-    <p>
-        Quando uma rota roda mais diárias que a outra, ela não recebe 100% da diferença.
-        Em vez disso, aplica-se a regra:
-    </p>
+<p>
+    Isso garante equilíbrio: reconhece o esforço operacional de quem rodou mais,
+    mas protege a outra rota de ficar desassistida.
+</p>
 
-    <ul>
-        <li>A rota que rodou mais recebe <b>70%</b> da diária excedente;</li>
-        <li>A rota que rodou menos recebe <b>30%</b> da diária excedente.</li>
-    </ul>
+<div class="divider"></div>
 
-    <p>
-        Isso garante equilíbrio: reconhece o esforço operacional de quem rodou mais,
-        mas protege a outra rota de ficar desassistida.
-    </p>
+<h3>4. Bruto, Líquido e Alunos Equivalentes</h3>
+<p>
+    O <b>Bruto</b> é calculado a partir das diárias dos veículos.
+    O <b>Bruto Ajustado</b> é obtido após descontar os 10% das passagens.
+    O <b>Líquido</b> é calculado descontando-se o auxílio e as passagens líquidas.
+</p>
 
-    <div class="divider"></div>
+<p>
+    Em seguida, o valor é dividido pelos <b>alunos equivalentes</b>, que consideram os descontos
+    aplicados (50%, 70%, etc.), garantindo mensalidades proporcionais.
+</p>
 
-    <h3>4. Bruto, Líquido e Alunos Equivalentes</h3>
-    <p>
-        O <b>Bruto</b> é calculado a partir das diárias dos veículos.
-        O <b>Bruto Ajustado</b> é obtido após descontar os 10% das passagens.
-        O <b>Líquido</b> é calculado descontando-se o auxílio e as passagens líquidas.
-    </p>
+<div class="divider"></div>
 
-    <p>
-        Em seguida, o valor é dividido pelos <b>alunos equivalentes</b>, que consideram os descontos
-        aplicados (50%, 70%, etc.), garantindo mensalidades proporcionais.
-    </p>
+<h3>5. Benefícios da Metodologia</h3>
+<ul>
+    <li><b>Justiça operacional</b>: considera diárias, passagens e diferenças entre rotas;</li>
+    <li><b>Transparência</b>: todos os cálculos são claros e reproduzíveis;</li>
+    <li><b>Controle mensal</b>: cada mês é independente, permitindo ajustes finos;</li>
+    <li><b>Proteção financeira</b>: a regra 70/30 evita concentração injusta do auxílio;</li>
+    <li><b>Equilíbrio</b>: os 10% tornam a divisão mais proporcional à arrecadação real.</li>
+</ul>
 
-    <div class="divider"></div>
-
-    <h3>5. Benefícios da Metodologia</h3>
-    <ul>
-        <li><b>Justiça operacional</b>: considera diárias, passagens e diferenças entre rotas;</li>
-        <li><b>Transparência</b>: todos os cálculos são claros e reproduzíveis;</li>
-        <li><b>Controle mensal</b>: cada mês é independente, permitindo ajustes finos;</li>
-        <li><b>Proteção financeira</b>: a regra 70/30 evita concentração injusta do auxílio;</li>
-        <li><b>Equilíbrio</b>: os 10% tornam a divisão mais proporcional à arrecadação real.</li>
-    </ul>
-</div>
-""", unsafe_allow_html=True)
 # ============================================================
 # PÁGINA 2 — CADASTRO E CÁLCULO
 # ============================================================
