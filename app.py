@@ -212,6 +212,7 @@ def montar_linhas_alunos_html(nome_rota: str, int_qtd: int, mensal_base: float, 
             </tr>
             """
     return linhas
+
 # ============================================================
 # MENU LATERAL
 # ============================================================
@@ -238,75 +239,59 @@ if pagina == "🏠 Início":
 
         <div class="divider"></div>
 
-        <h3>1. Contribuição obrigatória de 10% das passagens</h3>
+        <h3>1. Como funciona o cálculo</h3>
         <p>
-            Cada rota contribui com <b>10% do valor arrecadado em passagens</b>.  
-            Esse valor é subtraído do <b>custo bruto da própria rota</b> antes da divisão do auxílio.
-        </p>
-        <p>
-            Isso significa que:
+            O sistema considera:
         </p>
         <ul>
+            <li>Diárias rodadas por cada rota;</li>
+            <li>Valores das diárias de cada veículo;</li>
+            <li>Passagens arrecadadas;</li>
+            <li>Alunos integrais e com desconto;</li>
+            <li>Divisão do auxílio com regra 70/30 quando necessário.</li>
+        </ul>
+
+        <div class="divider"></div>
+
+        <h3>2. Como funciona a divisão do auxílio</h3>
+        <p>
+            A divisão segue três princípios:
+        </p>
+        <ul>
+            <li><b>Proporcionalidade</b> quando as rotas rodam igual;</li>
+            <li><b>Regra 70/30</b> quando uma rota roda mais que a outra;</li>
+            <li><b>Justiça operacional</b> baseada no custo real.</li>
+        </ul>
+
+        <div class="divider"></div>
+
+        <h3>3. Como funciona o cálculo das mensalidades</h3>
+        <p>
+            Após calcular o líquido final de cada rota, o sistema divide o valor pelos 
+            <b>alunos equivalentes</b>, considerando:
+        </p>
+        <ul>
+            <li>Alunos integrais contam como 1,0;</li>
+            <li>Alunos com desconto contam proporcionalmente;</li>
+            <li>O valor final é justo e proporcional ao custo real.</li>
+        </ul>
+
+        <div class="divider"></div>
+
+        <h2 style="color:#00e676;">Nova Regra — 10% das Passagens</h2>
+        <p>
+            A partir de agora, cada rota contribui com <b>10% do valor arrecadado em passagens</b>.
+        </p>
+
+        <ul>
+            <li>Esse valor é subtraído do <b>bruto da própria rota</b>;</li>
             <li>O auxílio <b>não perde valor</b>;</li>
-            <li>Cada rota contribui proporcionalmente ao que arrecada;</li>
-            <li>O cálculo fica mais equilibrado e transparente.</li>
-        </ul>
-
-        <div class="divider"></div>
-
-        <h3>2. Bruto, Bruto Ajustado e Passagens Líquidas</h3>
-        <p>
-            Para cada rota, o sistema calcula:
-        </p>
-        <ul>
-            <li><b>Bruto original</b>: soma das diárias dos veículos;</li>
-            <li><b>Desconto de 10%</b>: 10% das passagens arrecadadas;</li>
-            <li><b>Bruto ajustado</b>: bruto original menos o desconto;</li>
-            <li><b>Passagens líquidas</b>: passagens totais menos os 10% já enviados.</li>
-        </ul>
-
-        <div class="divider"></div>
-
-        <h3>3. Divisão do Auxílio</h3>
-        <p>
-            O auxílio é dividido considerando:
-        </p>
-        <ul>
-            <li><b>Diárias rodadas</b> por cada rota;</li>
-            <li><b>Regra 70/30</b> quando há diferença de diárias;</li>
-            <li><b>Proporcionalidade</b> quando as rotas rodam igual.</li>
-        </ul>
-
-        <div class="divider"></div>
-
-        <h3>4. Cálculo do Líquido e Mensalidades</h3>
-        <p>
-            Após aplicar o desconto e dividir o auxílio, o sistema calcula:
-        </p>
-        <ul>
-            <li><b>Líquido final</b> = Bruto ajustado – Auxílio – Passagens líquidas;</li>
-            <li><b>Mensalidade</b> = Líquido ÷ alunos equivalentes;</li>
-            <li>Valores individuais para alunos integrais e com desconto.</li>
-        </ul>
-
-        <div class="divider"></div>
-
-        <h3>5. Transparência Total</h3>
-        <p>
-            O relatório final e o PDF exibem:
-        </p>
-        <ul>
-            <li>Bruto original;</li>
-            <li>10% das passagens;</li>
-            <li>Bruto ajustado;</li>
-            <li>Auxílio recebido;</li>
-            <li>Passagens totais e líquidas;</li>
-            <li>Líquido final;</li>
-            <li>Mensalidades por tipo de aluno.</li>
+            <li>As passagens líquidas são: <b>Passagens totais – 10%</b>;</li>
+            <li>O líquido final é calculado com base nisso.</li>
         </ul>
 
         <p>
-            Tudo isso garante um processo <b>justo, claro e auditável</b> para ambas as rotas.
+            Essa regra torna o sistema mais equilibrado, justo e transparente.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -416,7 +401,7 @@ if pagina == "🧮 Cadastro e Cálculo":
         al_eq_sete = alunos_equivalentes(int_sete, desc_sete)
         al_eq_cur = alunos_equivalentes(int_cur, desc_cur)
 
-        # LÍQUIDO FINAL (regra confirmada)
+        # LÍQUIDO FINAL
         liquido_sete = bruto_aj_sete - aux_sete - pass_liq_sete
         liquido_cur = bruto_aj_cur - aux_cur - pass_liq_cur
 
@@ -466,6 +451,7 @@ if pagina == "🧮 Cadastro e Cálculo":
         st.success("Cálculo realizado! Vá para a aba 'Relatórios e Gráficos'.")
 
     st.markdown('</div>', unsafe_allow_html=True)
+
 # ============================================================
 # PÁGINA 3 — RELATÓRIOS E GRÁFICOS
 # ============================================================
@@ -654,162 +640,5 @@ if pagina == "📊 Relatórios e Gráficos":
                 file_name="relatorio_asseuf.pdf",
                 mime="application/pdf"
             )
-# ============================================================
-# FUNÇÃO PARA GERAR PDF PROFISSIONAL
-# ============================================================
-def gerar_pdf_profissional(r: dict) -> bytes:
-    qr_b64 = gerar_qr_base64("Relatório ASSEUF - Rotas Sete Lagoas e Curvelo")
-    mes_ref = r.get("mes_ref", "").strip()
-    if not mes_ref:
-        mes_ref = "Mês não informado"
 
-    # TABELA DE ALUNOS — SETE LAGOAS
-    linhas_sete = montar_linhas_alunos_html(
-        "Sete Lagoas",
-        r["int_sete"],
-        r["mensal_sete"],
-        r["desc_sete"]
-    )
-
-    # TABELA DE ALUNOS — CURVELO
-    linhas_cur = montar_linhas_alunos_html(
-        "Curvelo",
-        r["int_cur"],
-        r["mensal_cur"],
-        r["desc_cur"]
-    )
-
-    # HTML DO PDF
-    html = f"""
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                margin: 30px;
-                color: #222;
-            }}
-            h1, h2, h3 {{
-                color: #00695c;
-            }}
-            .header {{
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                border-bottom: 2px solid #00695c;
-                padding-bottom: 10px;
-                margin-bottom: 20px;
-            }}
-            .logo-title {{
-                display: flex;
-                flex-direction: column;
-            }}
-            .qr {{
-                text-align: right;
-            }}
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 15px;
-                margin-bottom: 20px;
-            }}
-            th, td {{
-                border: 1px solid #bbb;
-                padding: 6px 8px;
-                font-size: 12px;
-            }}
-            th {{
-                background-color: #e0f2f1;
-            }}
-            .section-title {{
-                margin-top: 25px;
-                font-size: 16px;
-                font-weight: bold;
-                color: #004d40;
-            }}
-            .small {{
-                font-size: 11px;
-                color: #555;
-            }}
-        </style>
-    </head>
-
-    <body>
-        <div class="header">
-            <div class="logo-title">
-                <h1>ASSEUF - Relatório Mensal</h1>
-                <span class="small">Sistema de Cálculo das Rotas - Sete Lagoas e Curvelo</span>
-                <span class="small">Mês de referência: {mes_ref}</span>
-            </div>
-            <div class="qr">
-                <img src="data:image/png;base64,{qr_b64}" width="90">
-                <div class="small">Validação do relatório</div>
-            </div>
-        </div>
-
-        <h2>Resumo Financeiro</h2>
-        <table>
-            <tr>
-                <th>Indicador</th>
-                <th>Sete Lagoas</th>
-                <th>Curvelo</th>
-            </tr>
-
-            <tr><td>Bruto original</td>
-                <td>R$ {r["bruto_sete"]:,.2f}</td>
-                <td>R$ {r["bruto_cur"]:,.2f}</td></tr>
-
-            <tr><td>10% das passagens</td>
-                <td>R$ {r["desc10_sete"]:,.2f}</td>
-                <td>R$ {r["desc10_cur"]:,.2f}</td></tr>
-
-            <tr><td>Bruto ajustado</td>
-                <td>R$ {r["bruto_aj_sete"]:,.2f}</td>
-                <td>R$ {r["bruto_aj_cur"]:,.2f}</td></tr>
-
-            <tr><td>Auxílio recebido</td>
-                <td>R$ {r["aux_sete"]:,.2f}</td>
-                <td>R$ {r["aux_cur"]:,.2f}</td></tr>
-
-            <tr><td>Passagens totais</td>
-                <td>R$ {r["pass_sete"]:,.2f}</td>
-                <td>R$ {r["pass_cur"]:,.2f}</td></tr>
-
-            <tr><td>Passagens líquidas</td>
-                <td>R$ {r["pass_liq_sete"]:,.2f}</td>
-                <td>R$ {r["pass_liq_cur"]:,.2f}</td></tr>
-
-            <tr><td>Líquido final</td>
-                <td>R$ {r["liquido_sete"]:,.2f}</td>
-                <td>R$ {r["liquido_cur"]:,.2f}</td></tr>
-        </table>
-
-        <h2>Alunos e Mensalidades</h2>
-        <table>
-            <tr>
-                <th>Rota</th>
-                <th>Tipo</th>
-                <th>Quantidade</th>
-                <th>Valor individual</th>
-                <th>Total</th>
-            </tr>
-
-            {linhas_sete}
-            {linhas_cur}
-        </table>
-
-        <h3 class="section-title">Observações</h3>
-        <p class="small">
-            Este relatório foi gerado automaticamente pelo Sistema de Cálculo das Rotas da ASSEUF.
-            A metodologia considera:
-            <br>• Contribuição obrigatória de 10% das passagens por rota;
-            <br>• Bruto ajustado antes da divisão do auxílio;
-            <br>• Regra 70/30 nas diárias excedentes;
-            <br>• Cálculo de mensalidades baseado no líquido final e alunos equivalentes.
-        </p>
-    </body>
-    </html>
-    """
-
-    return HTML(string=html).write_pdf()
+#
