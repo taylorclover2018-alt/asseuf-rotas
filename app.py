@@ -240,9 +240,7 @@ if pagina == "🏠 Início":
         <div class="divider"></div>
 
         <h3>1. Como funciona o cálculo</h3>
-        <p>
-            O sistema considera:
-        </p>
+        <p>O sistema considera:</p>
         <ul>
             <li>Diárias rodadas por cada rota;</li>
             <li>Valores das diárias de cada veículo;</li>
@@ -254,9 +252,7 @@ if pagina == "🏠 Início":
         <div class="divider"></div>
 
         <h3>2. Como funciona a divisão do auxílio</h3>
-        <p>
-            A divisão segue três princípios:
-        </p>
+        <p>A divisão segue três princípios:</p>
         <ul>
             <li><b>Proporcionalidade</b> quando as rotas rodam igual;</li>
             <li><b>Regra 70/30</b> quando uma rota roda mais que a outra;</li>
@@ -294,8 +290,7 @@ if pagina == "🏠 Início":
             Essa regra torna o sistema mais equilibrado, justo e transparente.
         </p>
     </div>
-    """, unsafe_allow_html=True)
-# ============================================================
+    """, unsafe_allow_html=True)# ============================================================
 # PÁGINA 2 — CADASTRO E CÁLCULO
 # ============================================================
 if pagina == "🧮 Cadastro e Cálculo":
