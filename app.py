@@ -201,6 +201,131 @@ def calcular_valor_alunos(integrais, descontos, mensalidade):
 
     return valores
 
+def gerar_qr_base64(texto: str) -> str:
+    qr = qrcode.QRCode(box_size=4, border=1)
+    qr.add_data(texto)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+def gerar_pdf_profissional(r: dict) -> bytes:
+    qr_b64 = gerar_qr_base64("Relatório ASSEUF - Rotas 7L e Curvelo")
+    html = f"""
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 30px;
+                color: #222;
+            }}
+            h1, h2, h3 {{
+                color: #00695c;
+            }}
+            .header {{
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 2px solid #00695c;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+            }}
+            .logo-title {{
+                display: flex;
+                flex-direction: column;
+            }}
+            .qr {{
+                text-align: right;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+                margin-bottom: 20px;
+            }}
+            th, td {{
+                border: 1px solid #bbb;
+                padding: 6px 8px;
+                font-size: 12px;
+            }}
+            th {{
+                background-color: #e0f2f1;
+            }}
+            .section-title {{
+                margin-top: 25px;
+                font-size: 16px;
+                font-weight: bold;
+                color: #004d40;
+            }}
+            .small {{
+                font-size: 11px;
+                color: #555;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="logo-title">
+                <h1>ASSEUF - Relatório Mensal</h1>
+                <span class="small">Sistema de Cálculo das Rotas - 7 Lagoas e Curvelo</span>
+            </div>
+            <div class="qr">
+                <img src="data:image/png;base64,{qr_b64}" width="90">
+                <div class="small">Validação do relatório</div>
+            </div>
+        </div>
+
+        <h2>Resumo Financeiro</h2>
+        <table>
+            <tr>
+                <th>Indicador</th>
+                <th>Valor</th>
+            </tr>
+            <tr><td>Auxílio total</td><td>R$ {r["aux_total"]:,.2f}</td></tr>
+            <tr><td>Auxílio 7 Lagoas</td><td>R$ {r["aux_ideal_7l"]:,.2f}</td></tr>
+            <tr><td>Auxílio Curvelo</td><td>R$ {r["aux_ideal_cur"]:,.2f}</td></tr>
+            <tr><td>Passagens 7 Lagoas</td><td>R$ {r["pass_7l"]:,.2f}</td></tr>
+            <tr><td>Passagens Curvelo</td><td>R$ {r["pass_cur"]:,.2f}</td></tr>
+            <tr><td>Custo bruto 7 Lagoas</td><td>R$ {r["bruto_7l"]:,.2f}</td></tr>
+            <tr><td>Custo bruto Curvelo</td><td>R$ {r["bruto_cur"]:,.2f}</td></tr>
+        </table>
+
+        <h2>Alunos e Mensalidades</h2>
+        <table>
+            <tr>
+                <th>Rota</th>
+                <th>Alunos integrais</th>
+                <th>Alunos equivalentes</th>
+                <th>Mensalidade média</th>
+            </tr>
+            <tr>
+                <td>7 Lagoas</td>
+                <td>{r["int_7l"]}</td>
+                <td>{r["al_eq_7l"]:,.2f}</td>
+                <td>R$ {r["mensal_7l"]:,.2f}</td>
+            </tr>
+            <tr>
+                <td>Curvelo</td>
+                <td>{r["int_cur"]}</td>
+                <td>{r["al_eq_cur"]:,.2f}</td>
+                <td>R$ {r["mensal_cur"]:,.2f}</td>
+            </tr>
+        </table>
+
+        <h3 class="section-title">Observações</h3>
+        <p class="small">
+            Este relatório foi gerado automaticamente pelo Sistema de Cálculo das Rotas da ASSEUF,
+            considerando a metodologia de divisão do auxílio (desconto de 10% das passagens e regra 70/30
+            nas diárias excedentes), bem como o cálculo de alunos equivalentes para definição de mensalidades.
+        </p>
+    </body>
+    </html>
+    """
+    return HTML(string=html).write_pdf()
+
 # ============================
 # MENU LATERAL
 # ============================
@@ -222,9 +347,51 @@ if pagina == "🏠 Início":
         <div class="section-title">Visão Geral</div>
         <h2>Modelo de Divisão do Auxílio entre as Rotas</h2>
         <p>
-            Este sistema foi desenvolvido para garantir uma divisão <b>justa, transparente e auditável</b>
-            do auxílio financeiro entre as rotas <b>7 Lagoas</b> e <b>Curvelo</b>.
+            Este sistema foi desenvolvido para garantir uma divisão <b>justa, transparente e auditável</b> 
+            do auxílio financeiro entre as rotas <b>7 Lagoas</b> e <b>Curvelo</b>, refletindo o custo real 
+            de operação de cada uma.
         </p>
+        <div class="divider"></div>
+        <h3>1. Proporcionalidade pelas Diárias Rodadas</h3>
+        <p>
+            A base da divisão é o número de <b>diárias rodadas</b> por cada rota no mês. 
+            Meses com calendários acadêmicos diferentes entre as rotas (feriados locais, recessos, 
+            semanas de prova, ajustes de calendário) são automaticamente contemplados, pois o sistema 
+            considera o número real de dias em que cada rota operou.
+        </p>
+        <h3>2. Desconto de 10% sobre a Arrecadação de Passagens</h3>
+        <p>
+            Antes de dividir o auxílio, é aplicado um desconto de <b>10% sobre a soma das passagens</b> 
+            arrecadadas pelas duas rotas. Isso evita que uma rota que arrecada mais em passagens 
+            receba um volume desproporcional de auxílio.
+        </p>
+        <h3>3. Regra de Compensação 70% / 30%</h3>
+        <p>
+            Quando uma rota roda mais diárias que a outra, ela não recebe 100% da diferença. 
+            Em vez disso, aplica-se a regra:
+        </p>
+        <ul>
+            <li>A rota que rodou mais recebe <b>70%</b> da diária excedente;</li>
+            <li>A rota que rodou menos recebe <b>30%</b> da diária excedente.</li>
+        </ul>
+        <p>
+            Isso garante equilíbrio: reconhece o esforço operacional de quem rodou mais, 
+            mas protege a outra rota de ficar desassistida.
+        </p>
+        <h3>4. Bruto, Líquido e Alunos Equivalentes</h3>
+        <p>
+            O <b>Bruto</b> é calculado a partir das diárias dos veículos. 
+            O <b>Líquido</b> é obtido descontando-se o auxílio ideal e as passagens. 
+            Em seguida, o valor é dividido pelos <b>alunos equivalentes</b>, 
+            que consideram os descontos aplicados (50%, 70%, etc.), garantindo mensalidades proporcionais.
+        </p>
+        <h3>5. Benefícios da Metodologia</h3>
+        <ul>
+            <li><b>Justiça operacional</b>: considera diárias, passagens e diferenças entre rotas;</li>
+            <li><b>Transparência</b>: todos os cálculos são claros e reproduzíveis;</li>
+            <li><b>Controle mensal</b>: cada mês é independente, permitindo ajustes finos;</li>
+            <li><b>Proteção financeira</b>: a regra 70/30 evita concentração injusta do auxílio.</li>
+        </ul>
     </div>
     """, unsafe_allow_html=True)
 
@@ -383,7 +550,7 @@ if pagina == "📊 Relatórios e Gráficos":
             st.markdown('<div class="metric-sub">Soma das duas rotas</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-                with col4:
+        with col4:
             total_bruto = r["bruto_7l"] + r["bruto_cur"]
             st.markdown('<div class="metric-card">', unsafe_allow_html=True)
             st.markdown('<div class="metric-label">Custo bruto total</div>', unsafe_allow_html=True)
@@ -394,7 +561,7 @@ if pagina == "📊 Relatórios e Gráficos":
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
         # ============================
-        # GRÁFICO 1 — AUXÍLIO POR ROTA
+        # GRÁFICO 1 — PORCENTAGEM DO AUXÍLIO POR ROTA
         # ============================
         st.markdown("### 📊 Distribuição do Auxílio entre as Rotas")
 
@@ -413,14 +580,39 @@ if pagina == "📊 Relatórios e Gráficos":
                 alt.Tooltip("Auxílio", title="Auxílio (R$)", format=",.2f"),
                 alt.Tooltip("Percentual", title="% do auxílio", format=".2f")
             ]
-        ).properties(width=380, height=320)
+        ).properties(
+            width=380,
+            height=320
+        )
 
-        st.altair_chart(chart_aux, use_container_width=True)
+        colA, colB = st.columns(2)
+        with colA:
+            st.altair_chart(chart_aux, use_container_width=True)
+
+        with colB:
+            st.markdown("""
+            <div class="elevated-card">
+                <div class="section-title">Interpretação</div>
+                <p>
+                    Este gráfico mostra a <b>porcentagem do auxílio</b> que cada rota recebe após a aplicação 
+                    da metodologia (desconto de 10% das passagens + regra 70/30 nas diárias excedentes).
+                </p>
+                <p>
+                    A leitura é direta: quanto maior a fatia, maior a participação da rota no auxílio daquele mês.
+                    Diferenças podem ocorrer por:
+                </p>
+                <ul>
+                    <li>Mais diárias rodadas;</li>
+                    <li>Diferenças no calendário acadêmico;</li>
+                    <li>Diferenças na arrecadação de passagens.</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
 
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
         # ============================
-        # GRÁFICO 2 — PASSAGENS
+        # GRÁFICO 2 — COMPARAÇÃO DAS PASSAGENS
         # ============================
         st.markdown("### 💸 Comparação da Arrecadação de Passagens")
 
@@ -429,7 +621,7 @@ if pagina == "📊 Relatórios e Gráficos":
             {"Rota": "Curvelo", "Passagens": r["pass_cur"]},
         ])
 
-        chart_pass = alt.Chart(pass_data).mark_bar(size=60).encode(
+        chart_pass = alt.Chart(pass_data).mark_bar(size=60, cornerRadiusTopLeft=8, cornerRadiusTopRight=8).encode(
             x=alt.X("Rota", sort=None),
             y=alt.Y("Passagens", title="Valor arrecadado (R$)"),
             color=alt.Color("Rota", scale=alt.Scale(range=["#00e676", "#40c4ff"])),
@@ -437,38 +629,65 @@ if pagina == "📊 Relatórios e Gráficos":
                 alt.Tooltip("Rota", title="Rota"),
                 alt.Tooltip("Passagens", title="Passagens (R$)", format=",.2f")
             ]
-        ).properties(width=420, height=320)
+        ).properties(
+            width=420,
+            height=320
+        )
 
-        st.altair_chart(chart_pass, use_container_width=True)
+        colC, colD = st.columns(2)
+        with colC:
+            st.altair_chart(chart_pass, use_container_width=True)
+
+        with colD:
+            st.markdown("""
+            <div class="elevated-card">
+                <div class="section-title">Leitura das passagens</div>
+                <p>
+                    Aqui comparamos a arrecadação de passagens entre as duas rotas. 
+                    Diferenças significativas podem indicar variações de demanda, calendário ou perfil dos alunos.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
 
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
         # ============================
-        # GERAR PDF
+        # GRÁFICOS SOBRE ALUNOS
+        # ============================
+        st.markdown("### 👥 Alunos integrais e equivalentes")
+
+        alunos_data = pd.DataFrame([
+            {"Rota": "7 Lagoas", "Tipo": "Integrais", "Quantidade": r["int_7l"]},
+            {"Rota": "7 Lagoas", "Tipo": "Equivalentes", "Quantidade": r["al_eq_7l"]},
+            {"Rota": "Curvelo", "Tipo": "Integrais", "Quantidade": r["int_cur"]},
+            {"Rota": "Curvelo", "Tipo": "Equivalentes", "Quantidade": r["al_eq_cur"]},
+        ])
+
+        chart_alunos = alt.Chart(alunos_data).mark_bar().encode(
+            x=alt.X("Rota:N", title="Rota"),
+            y=alt.Y("Quantidade:Q", title="Quantidade"),
+            color=alt.Color("Tipo:N", scale=alt.Scale(range=["#00e676", "#ffb300"])),
+            column=alt.Column("Tipo:N", title="")
+        ).properties(
+            width=180,
+            height=300
+        )
+
+        st.altair_chart(chart_alunos, use_container_width=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+        # ============================
+        # GERAR PDF PROFISSIONAL
         # ============================
         st.markdown("## 📝 Gerar Relatório em PDF")
 
-        if st.button("📄 Gerar PDF"):
-            html = f"""
-            <h1>Relatório Mensal - ASSEUF</h1>
-            <h2>Resumo Financeiro</h2>
+        pdf_bytes = None
+        if st.button("📄 Gerar PDF profissional"):
+            pdf_bytes = gerar_pdf_profissional(r)
+            st.success("PDF gerado com sucesso! Use o botão abaixo para baixar.")
 
-            <p><b>Auxílio total:</b> R$ {r["aux_total"]:,.2f}</p>
-            <p><b>Auxílio 7 Lagoas:</b> R$ {r["aux_ideal_7l"]:,.2f}</p>
-            <p><b>Auxílio Curvelo:</b> R$ {r["aux_ideal_cur"]:,.2f}</p>
-
-            <p><b>Passagens 7 Lagoas:</b> R$ {r["pass_7l"]:,.2f}</p>
-            <p><b>Passagens Curvelo:</b> R$ {r["pass_cur"]:,.2f}</p>
-
-            <p><b>Custo bruto 7 Lagoas:</b> R$ {r["bruto_7l"]:,.2f}</p>
-            <p><b>Custo bruto Curvelo:</b> R$ {r["bruto_cur"]:,.2f}</p>
-
-            <p><b>Mensalidade 7 Lagoas:</b> R$ {r["mensal_7l"]:,.2f}</p>
-            <p><b>Mensalidade Curvelo:</b> R$ {r["mensal_cur"]:,.2f}</p>
-            """
-
-            pdf_bytes = HTML(string=html).write_pdf()
-
+        if pdf_bytes:
             st.download_button(
                 label="⬇️ Baixar PDF",
                 data=pdf_bytes,
