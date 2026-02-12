@@ -228,69 +228,69 @@ if pagina == "🏠 Início":
     st.markdown("<h1>Bem-vindo ao Sistema da ASSEUF</h1>", unsafe_allow_html=True)
 
     st.markdown("""
-    <div class="elevated-card">
-        <div class="section-title">Visão Geral</div>
-        <h2>Modelo de Cálculo e Divisão do Auxílio</h2>
-        <p>
-            Este sistema foi desenvolvido para garantir uma divisão <b>justa, transparente e auditável</b> 
-            do auxílio financeiro entre as rotas <b>Sete Lagoas</b> e <b>Curvelo</b>, refletindo o custo real 
-            de operação de cada uma.
-        </p>
+<div class="elevated-card">
+    <div class="section-title">Visão Geral</div>
+    <h2>Modelo de Cálculo e Divisão do Auxílio</h2>
+    <p>
+        Este sistema foi desenvolvido para garantir uma divisão <b>justa, transparente e auditável</b> 
+        do auxílio financeiro entre as rotas <b>Sete Lagoas</b> e <b>Curvelo</b>, refletindo o custo real 
+        de operação de cada uma.
+    </p>
 
-        <div class="divider"></div>
+    <div class="divider"></div>
 
-        <h3>1. Como funciona o cálculo</h3>
-        <p>O sistema considera:</p>
-        <ul>
-            <li>Diárias rodadas por cada rota;</li>
-            <li>Valores das diárias de cada veículo;</li>
-            <li>Passagens arrecadadas;</li>
-            <li>Alunos integrais e com desconto;</li>
-            <li>Divisão do auxílio com regra 70/30 quando necessário.</li>
-        </ul>
+    <h3>1. Como funciona o cálculo</h3>
+    <p>O sistema considera:</p>
+    <ul>
+        <li>Diárias rodadas por cada rota;</li>
+        <li>Valores das diárias de cada veículo;</li>
+        <li>Passagens arrecadadas;</li>
+        <li>Alunos integrais e com desconto;</li>
+        <li>Divisão do auxílio com regra 70/30 quando necessário.</li>
+    </ul>
 
-        <div class="divider"></div>
+    <div class="divider"></div>
 
-        <h3>2. Como funciona a divisão do auxílio</h3>
-        <p>A divisão segue três princípios:</p>
-        <ul>
-            <li><b>Proporcionalidade</b> quando as rotas rodam igual;</li>
-            <li><b>Regra 70/30</b> quando uma rota roda mais que a outra;</li>
-            <li><b>Justiça operacional</b> baseada no custo real.</li>
-        </ul>
+    <h3>2. Como funciona a divisão do auxílio</h3>
+    <p>A divisão segue três princípios:</p>
+    <ul>
+        <li><b>Proporcionalidade</b> quando as rotas rodam igual;</li>
+        <li><b>Regra 70/30</b> quando uma rota roda mais que a outra;</li>
+        <li><b>Justiça operacional</b> baseada no custo real.</li>
+    </ul>
 
-        <div class="divider"></div>
+    <div class="divider"></div>
 
-        <h3>3. Como funciona o cálculo das mensalidades</h3>
-        <p>
-            Após calcular o líquido final de cada rota, o sistema divide o valor pelos 
-            <b>alunos equivalentes</b>, considerando:
-        </p>
-        <ul>
-            <li>Alunos integrais contam como 1,0;</li>
-            <li>Alunos com desconto contam proporcionalmente;</li>
-            <li>O valor final é justo e proporcional ao custo real.</li>
-        </ul>
+    <h3>3. Como funciona o cálculo das mensalidades</h3>
+    <p>
+        Após calcular o líquido final de cada rota, o sistema divide o valor pelos 
+        <b>alunos equivalentes</b>, considerando:
+    </p>
+    <ul>
+        <li>Alunos integrais contam como 1,0;</li>
+        <li>Alunos com desconto contam proporcionalmente;</li>
+        <li>O valor final é justo e proporcional ao custo real.</li>
+    </ul>
 
-        <div class="divider"></div>
+    <div class="divider"></div>
 
-        <h2 style="color:#00e676;">Nova Regra — 10% das Passagens</h2>
-        <p>
-            A partir de agora, cada rota contribui com <b>10% do valor arrecadado em passagens</b>.
-        </p>
+    <h2 style="color:#00e676;">Nova Regra — 10% das Passagens</h2>
+    <p>
+        A partir de agora, cada rota contribui com <b>10% do valor arrecadado em passagens</b>.
+    </p>
 
-        <ul>
-            <li>Esse valor é subtraído do <b>bruto da própria rota</b>;</li>
-            <li>O auxílio <b>não perde valor</b>;</li>
-            <li>As passagens líquidas são: <b>Passagens totais – 10%</b>;</li>
-            <li>O líquido final é calculado com base nisso.</li>
-        </ul>
+    <ul>
+        <li>Esse valor é subtraído do <b>bruto da própria rota</b>;</li>
+        <li>O auxílio <b>não perde valor</b>;</li>
+        <li>As passagens líquidas são: <b>Passagens totais – 10%</b>;</li>
+        <li>O líquido final é calculado com base nisso.</li>
+    </ul>
 
-        <p>
-            Essa regra torna o sistema mais equilibrado, justo e transparente.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)   
+    <p>
+        Essa regra torna o sistema mais equilibrado, justo e transparente.
+    </p>
+</div>
+""", unsafe_allow_html=True)  
 # ============================================================
 # PÁGINA 2 — CADASTRO E CÁLCULO
 # ============================================================
