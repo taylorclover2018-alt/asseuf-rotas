@@ -383,5 +383,95 @@ if pagina == "📊 Relatórios e Gráficos":
             st.markdown('<div class="metric-sub">Soma das duas rotas</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-        with col4:
-            total_bruto = r["bruto_
+                with col4:
+            total_bruto = r["bruto_7l"] + r["bruto_cur"]
+            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+            st.markdown('<div class="metric-label">Custo bruto total</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-value">R$ {total_bruto:,.2f}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="metric-sub">Soma dos custos das duas rotas</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+        # ============================
+        # GRÁFICO 1 — AUXÍLIO POR ROTA
+        # ============================
+        st.markdown("### 📊 Distribuição do Auxílio entre as Rotas")
+
+        aux_data = pd.DataFrame([
+            {"Rota": "7 Lagoas", "Auxílio": r["aux_ideal_7l"]},
+            {"Rota": "Curvelo", "Auxílio": r["aux_ideal_cur"]},
+        ])
+
+        aux_data["Percentual"] = aux_data["Auxílio"] / aux_data["Auxílio"].sum() * 100
+
+        chart_aux = alt.Chart(aux_data).mark_arc(outerRadius=110).encode(
+            theta="Auxílio",
+            color=alt.Color("Rota", scale=alt.Scale(range=["#00e676", "#40c4ff"])),
+            tooltip=[
+                alt.Tooltip("Rota", title="Rota"),
+                alt.Tooltip("Auxílio", title="Auxílio (R$)", format=",.2f"),
+                alt.Tooltip("Percentual", title="% do auxílio", format=".2f")
+            ]
+        ).properties(width=380, height=320)
+
+        st.altair_chart(chart_aux, use_container_width=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+        # ============================
+        # GRÁFICO 2 — PASSAGENS
+        # ============================
+        st.markdown("### 💸 Comparação da Arrecadação de Passagens")
+
+        pass_data = pd.DataFrame([
+            {"Rota": "7 Lagoas", "Passagens": r["pass_7l"]},
+            {"Rota": "Curvelo", "Passagens": r["pass_cur"]},
+        ])
+
+        chart_pass = alt.Chart(pass_data).mark_bar(size=60).encode(
+            x=alt.X("Rota", sort=None),
+            y=alt.Y("Passagens", title="Valor arrecadado (R$)"),
+            color=alt.Color("Rota", scale=alt.Scale(range=["#00e676", "#40c4ff"])),
+            tooltip=[
+                alt.Tooltip("Rota", title="Rota"),
+                alt.Tooltip("Passagens", title="Passagens (R$)", format=",.2f")
+            ]
+        ).properties(width=420, height=320)
+
+        st.altair_chart(chart_pass, use_container_width=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+        # ============================
+        # GERAR PDF
+        # ============================
+        st.markdown("## 📝 Gerar Relatório em PDF")
+
+        if st.button("📄 Gerar PDF"):
+            html = f"""
+            <h1>Relatório Mensal - ASSEUF</h1>
+            <h2>Resumo Financeiro</h2>
+
+            <p><b>Auxílio total:</b> R$ {r["aux_total"]:,.2f}</p>
+            <p><b>Auxílio 7 Lagoas:</b> R$ {r["aux_ideal_7l"]:,.2f}</p>
+            <p><b>Auxílio Curvelo:</b> R$ {r["aux_ideal_cur"]:,.2f}</p>
+
+            <p><b>Passagens 7 Lagoas:</b> R$ {r["pass_7l"]:,.2f}</p>
+            <p><b>Passagens Curvelo:</b> R$ {r["pass_cur"]:,.2f}</p>
+
+            <p><b>Custo bruto 7 Lagoas:</b> R$ {r["bruto_7l"]:,.2f}</p>
+            <p><b>Custo bruto Curvelo:</b> R$ {r["bruto_cur"]:,.2f}</p>
+
+            <p><b>Mensalidade 7 Lagoas:</b> R$ {r["mensal_7l"]:,.2f}</p>
+            <p><b>Mensalidade Curvelo:</b> R$ {r["mensal_cur"]:,.2f}</p>
+            """
+
+            pdf_bytes = HTML(string=html).write_pdf()
+
+            st.download_button(
+                label="⬇️ Baixar PDF",
+                data=pdf_bytes,
+                file_name="relatorio_asseuf.pdf",
+                mime="application/pdf"
+            )
