@@ -1,3 +1,8 @@
+from pathlib import Path
+import streamlit as st
+
+logo_path = Path(__file__).parent / "logo.png"
+st.image(str(logo_path))
 import streamlit as st
 import io
 import os
