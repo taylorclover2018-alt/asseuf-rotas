@@ -230,67 +230,88 @@ if pagina == "🏠 Início":
     st.markdown("""
 <div class="elevated-card">
     <div class="section-title">Visão Geral</div>
-    <h2>Modelo de Cálculo e Divisão do Auxílio</h2>
+    <h2>Modelo de Divisão do Auxílio entre as Rotas</h2>
+
     <p>
         Este sistema foi desenvolvido para garantir uma divisão <b>justa, transparente e auditável</b> 
-        do auxílio financeiro entre as rotas <b>Sete Lagoas</b> e <b>Curvelo</b>, refletindo o custo real 
+        do auxílio financeiro entre as rotas <b>7 Lagoas</b> e <b>Curvelo</b>, refletindo o custo real 
         de operação de cada uma.
     </p>
 
     <div class="divider"></div>
 
-    <h3>1. Como funciona o cálculo</h3>
-    <p>O sistema considera:</p>
-    <ul>
-        <li>Diárias rodadas por cada rota;</li>
-        <li>Valores das diárias de cada veículo;</li>
-        <li>Passagens arrecadadas;</li>
-        <li>Alunos integrais e com desconto;</li>
-        <li>Divisão do auxílio com regra 70/30 quando necessário.</li>
-    </ul>
+    <h3>1. Proporcionalidade pelas Diárias Rodadas</h3>
+    <p>
+        A base da divisão é o número de <b>diárias rodadas</b> por cada rota no mês.
+        Meses com calendários acadêmicos diferentes entre as rotas (feriados locais, recessos,
+        semanas de prova, ajustes de calendário) são automaticamente contemplados, pois o sistema
+        considera o número real de dias em que cada rota operou.
+    </p>
 
     <div class="divider"></div>
 
-    <h3>2. Como funciona a divisão do auxílio</h3>
-    <p>A divisão segue três princípios:</p>
+    <h3>2. Desconto de 10% sobre as Passagens (Nova Regra)</h3>
+    <p>
+        Cada rota contribui com <b>10% do valor arrecadado em passagens</b>.
+        Esse desconto é aplicado <b>individualmente</b> em cada rota, e não no total combinado.
+    </p>
+
     <ul>
-        <li><b>Proporcionalidade</b> quando as rotas rodam igual;</li>
-        <li><b>Regra 70/30</b> quando uma rota roda mais que a outra;</li>
-        <li><b>Justiça operacional</b> baseada no custo real.</li>
+        <li>O desconto é subtraído do <b>bruto da própria rota</b>;</li>
+        <li>O auxílio <b>não perde valor</b> — ele é dividido normalmente;</li>
+        <li>As passagens líquidas são calculadas como:<br>
+            <b>Passagens totais da rota – 10% da própria rota</b>;</li>
+        <li>O líquido final considera esse ajuste antes da divisão pelos alunos.</li>
     </ul>
+
+    <p>
+        Essa regra torna o sistema mais equilibrado, justo e proporcional à arrecadação real de cada rota.
+    </p>
 
     <div class="divider"></div>
 
-    <h3>3. Como funciona o cálculo das mensalidades</h3>
+    <h3>3. Regra de Compensação 70% / 30%</h3>
     <p>
-        Após calcular o líquido final de cada rota, o sistema divide o valor pelos 
-        <b>alunos equivalentes</b>, considerando:
+        Quando uma rota roda mais diárias que a outra, ela não recebe 100% da diferença.
+        Em vez disso, aplica-se a regra:
     </p>
+
     <ul>
-        <li>Alunos integrais contam como 1,0;</li>
-        <li>Alunos com desconto contam proporcionalmente;</li>
-        <li>O valor final é justo e proporcional ao custo real.</li>
+        <li>A rota que rodou mais recebe <b>70%</b> da diária excedente;</li>
+        <li>A rota que rodou menos recebe <b>30%</b> da diária excedente.</li>
     </ul>
+
+    <p>
+        Isso garante equilíbrio: reconhece o esforço operacional de quem rodou mais,
+        mas protege a outra rota de ficar desassistida.
+    </p>
 
     <div class="divider"></div>
 
-    <h2 style="color:#00e676;">Nova Regra — 10% das Passagens</h2>
+    <h3>4. Bruto, Líquido e Alunos Equivalentes</h3>
     <p>
-        A partir de agora, cada rota contribui com <b>10% do valor arrecadado em passagens</b>.
+        O <b>Bruto</b> é calculado a partir das diárias dos veículos.
+        O <b>Bruto Ajustado</b> é obtido após descontar os 10% das passagens.
+        O <b>Líquido</b> é calculado descontando-se o auxílio e as passagens líquidas.
     </p>
 
+    <p>
+        Em seguida, o valor é dividido pelos <b>alunos equivalentes</b>, que consideram os descontos
+        aplicados (50%, 70%, etc.), garantindo mensalidades proporcionais.
+    </p>
+
+    <div class="divider"></div>
+
+    <h3>5. Benefícios da Metodologia</h3>
     <ul>
-        <li>Esse valor é subtraído do <b>bruto da própria rota</b>;</li>
-        <li>O auxílio <b>não perde valor</b>;</li>
-        <li>As passagens líquidas são: <b>Passagens totais – 10%</b>;</li>
-        <li>O líquido final é calculado com base nisso.</li>
+        <li><b>Justiça operacional</b>: considera diárias, passagens e diferenças entre rotas;</li>
+        <li><b>Transparência</b>: todos os cálculos são claros e reproduzíveis;</li>
+        <li><b>Controle mensal</b>: cada mês é independente, permitindo ajustes finos;</li>
+        <li><b>Proteção financeira</b>: a regra 70/30 evita concentração injusta do auxílio;</li>
+        <li><b>Equilíbrio</b>: os 10% tornam a divisão mais proporcional à arrecadação real.</li>
     </ul>
-
-    <p>
-        Essa regra torna o sistema mais equilibrado, justo e transparente.
-    </p>
 </div>
-""", unsafe_allow_html=True)  
+""", unsafe_allow_html=True)
 # ============================================================
 # PÁGINA 2 — CADASTRO E CÁLCULO
 # ============================================================
