@@ -290,7 +290,8 @@ if pagina == "🏠 Início":
             Essa regra torna o sistema mais equilibrado, justo e transparente.
         </p>
     </div>
-    """, unsafe_allow_html=True)# ============================================================
+    """, unsafe_allow_html=True)   
+# ============================================================
 # PÁGINA 2 — CADASTRO E CÁLCULO
 # ============================================================
 if pagina == "🧮 Cadastro e Cálculo":
