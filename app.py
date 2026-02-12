@@ -9,19 +9,24 @@ import qrcode
 from io import BytesIO
 from weasyprint import HTML
 
-# ============================
+# ============================================================
 # CONFIGURAÇÃO DA PÁGINA
-# ============================
+# ============================================================
 st.set_page_config(
     page_title="Sistema de Cálculo das Rotas - ASSEUF",
     page_icon="🚌",
     layout="wide"
 )
 
-# ============================
+# ============================================================
 # LOGO AUTOMÁTICO
-# ============================
+# ============================================================
 def carregar_logo():
+    """
+    Tenta carregar automaticamente o arquivo logo.png
+    da mesma pasta do app.py. Se existir, exibe no topo
+    e na sidebar. Se não existir, mostra um aviso.
+    """
     logo_path = Path(__file__).parent / "logo.png"
     if logo_path.exists():
         st.sidebar.image(str(logo_path), width=140)
@@ -32,9 +37,9 @@ def carregar_logo():
 
 carregar_logo()
 
-# ============================
+# ============================================================
 # CSS PREMIUM + FONTES
-# ============================
+# ============================================================
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Space+Grotesk:wght@400;600&display=swap');
@@ -123,30 +128,48 @@ st.markdown("""
             background: linear-gradient(90deg, transparent, #00e676, transparent);
             margin: 18px 0;
         }
+        ul {
+            margin-left: 18px;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-# ============================
+# ============================================================
 # FUNÇÕES DO SISTEMA
-# ============================
+# ============================================================
 
-def alunos_equivalentes(integrais, descontos):
+def alunos_equivalentes(integrais: int, descontos: dict) -> float:
+    """
+    Calcula alunos equivalentes considerando:
+    - integrais contam como 1
+    - descontos (ex: 50%, 70%) contam proporcionalmente
+    """
     total = integrais
     for pct, qtd in descontos.items():
         fator = (100 - pct) / 100
         total += qtd * fator
     return total
 
-def calcular_bruto(veiculos):
+def calcular_bruto(veiculos: dict) -> float:
+    """
+    Soma valor * dias de todos os veículos cadastrados.
+    """
     return sum(v["valor"] * v["dias"] for v in veiculos.values())
 
-def dividir_auxilio(aux_total, pass_7l, pass_cur, d7, dC):
+def dividir_auxilio(aux_total: float, pass_7l: float, pass_cur: float, d7: int, dC: int):
+    """
+    Divide o auxílio entre as rotas considerando:
+    - desconto de 10% sobre a soma das passagens
+    - proporcionalidade pelas diárias
+    - regra 70/30 na diferença de diárias
+    """
     desconto_passagens = 0.10 * (pass_7l + pass_cur)
     aux_disponivel = aux_total - desconto_passagens
 
     if aux_disponivel < 0:
         aux_disponivel = 0
 
+    # Caso diárias iguais
     if d7 == dC and d7 > 0:
         total = d7 + dC
         return (
@@ -154,6 +177,7 @@ def dividir_auxilio(aux_total, pass_7l, pass_cur, d7, dC):
             aux_disponivel * (dC / total)
         )
 
+    # 7L com mais diárias
     if d7 > dC and dC > 0:
         excedente = d7 - dC
         base = min(d7, dC)
@@ -163,6 +187,7 @@ def dividir_auxilio(aux_total, pass_7l, pass_cur, d7, dC):
         aux_cur = base * valor_diaria + excedente * (valor_diaria * 0.30)
         return aux_7l, aux_cur
 
+    # Curvelo com mais diárias
     if dC > d7 and d7 > 0:
         excedente = dC - d7
         base = min(d7, dC)
@@ -172,36 +197,13 @@ def dividir_auxilio(aux_total, pass_7l, pass_cur, d7, dC):
         aux_cur = base * valor_diaria + excedente * (valor_diaria * 0.70)
         return aux_7l, aux_cur
 
+    # Caso extremo: alguma rota com 0 diárias
     return 0.0, 0.0
 
-def calcular_valor_alunos(integrais, descontos, mensalidade):
-    valores = {}
-    valores["integrais_qtd"] = integrais
-    valores["integrais_total"] = integrais * mensalidade
-
-    valores["descontos"] = []
-    total_desc = 0
-
-    for pct, qtd in descontos.items():
-        fator = (100 - pct) / 100
-        valor_individual = mensalidade * fator
-        total = valor_individual * qtd
-
-        valores["descontos"].append({
-            "pct": pct,
-            "qtd": qtd,
-            "valor_individual": valor_individual,
-            "total": total
-        })
-
-        total_desc += total
-
-    valores["total_descontos"] = total_desc
-    valores["total_geral"] = valores["integrais_total"] + total_desc
-
-    return valores
-
 def gerar_qr_base64(texto: str) -> str:
+    """
+    Gera um QR Code em base64 para embutir no PDF.
+    """
     qr = qrcode.QRCode(box_size=4, border=1)
     qr.add_data(texto)
     qr.make(fit=True)
@@ -211,7 +213,15 @@ def gerar_qr_base64(texto: str) -> str:
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 def gerar_pdf_profissional(r: dict) -> bytes:
+    """
+    Gera um PDF profissional com:
+    - cabeçalho
+    - QR Code
+    - tabelas de resumo
+    - observações
+    """
     qr_b64 = gerar_qr_base64("Relatório ASSEUF - Rotas 7L e Curvelo")
+
     html = f"""
     <html>
     <head>
@@ -326,19 +336,17 @@ def gerar_pdf_profissional(r: dict) -> bytes:
     """
     return HTML(string=html).write_pdf()
 
-# ============================
+# ============================================================
 # MENU LATERAL
-# ============================
-
+# ============================================================
 pagina = st.sidebar.radio(
     "Navegação",
     ["🏠 Início", "🧮 Cadastro e Cálculo", "📊 Relatórios e Gráficos"]
 )
 
-# ============================
+# ============================================================
 # PÁGINA 1 — INÍCIO
-# ============================
-
+# ============================================================
 if pagina == "🏠 Início":
     st.markdown("<h1>Bem-vindo ao Sistema da ASSEUF</h1>", unsafe_allow_html=True)
 
@@ -395,16 +403,17 @@ if pagina == "🏠 Início":
     </div>
     """, unsafe_allow_html=True)
 
-# ============================
+# ============================================================
 # PÁGINA 2 — CADASTRO E CÁLCULO
-# ============================
-
+# ============================================================
 if pagina == "🧮 Cadastro e Cálculo":
     st.markdown("<h1>Cadastro e Cálculo</h1>", unsafe_allow_html=True)
 
     colA, colB = st.columns(2)
 
+    # ----------------------------
     # CARD 7 LAGOAS
+    # ----------------------------
     with colA:
         with st.expander("🟦 Rota 7 Lagoas", expanded=False):
             st.markdown('<div class="elevated-card">', unsafe_allow_html=True)
@@ -433,7 +442,9 @@ if pagina == "🧮 Cadastro e Cálculo":
 
             st.markdown('</div>', unsafe_allow_html=True)
 
+    # ----------------------------
     # CARD CURVELO
+    # ----------------------------
     with colB:
         with st.expander("🟩 Rota Curvelo", expanded=False):
             st.markdown('<div class="elevated-card">', unsafe_allow_html=True)
@@ -462,7 +473,9 @@ if pagina == "🧮 Cadastro e Cálculo":
 
             st.markdown('</div>', unsafe_allow_html=True)
 
+    # ----------------------------
     # PROCESSAMENTO
+    # ----------------------------
     st.markdown('<div class="calc-card">', unsafe_allow_html=True)
     st.markdown("## ⚙️ Processar Resultados")
 
@@ -510,10 +523,9 @@ if pagina == "🧮 Cadastro e Cálculo":
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ============================
+# ============================================================
 # PÁGINA 3 — RELATÓRIOS E GRÁFICOS
-# ============================
-
+# ============================================================
 if pagina == "📊 Relatórios e Gráficos":
     st.markdown("<h1>Relatórios e Análises Visuais</h1>", unsafe_allow_html=True)
 
@@ -522,9 +534,9 @@ if pagina == "📊 Relatórios e Gráficos":
     else:
         r = st.session_state["resultados"]
 
-        # ============================
+        # ----------------------------
         # MÉTRICAS EM CARDS
-        # ============================
+        # ----------------------------
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
@@ -560,9 +572,9 @@ if pagina == "📊 Relatórios e Gráficos":
 
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-        # ============================
+        # ----------------------------
         # GRÁFICO 1 — PORCENTAGEM DO AUXÍLIO POR ROTA
-        # ============================
+        # ----------------------------
         st.markdown("### 📊 Distribuição do Auxílio entre as Rotas")
 
         aux_data = pd.DataFrame([
@@ -611,9 +623,9 @@ if pagina == "📊 Relatórios e Gráficos":
 
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-        # ============================
+        # ----------------------------
         # GRÁFICO 2 — COMPARAÇÃO DAS PASSAGENS
-        # ============================
+        # ----------------------------
         st.markdown("### 💸 Comparação da Arrecadação de Passagens")
 
         pass_data = pd.DataFrame([
@@ -651,9 +663,9 @@ if pagina == "📊 Relatórios e Gráficos":
 
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-        # ============================
+        # ----------------------------
         # GRÁFICOS SOBRE ALUNOS
-        # ============================
+        # ----------------------------
         st.markdown("### 👥 Alunos integrais e equivalentes")
 
         alunos_data = pd.DataFrame([
@@ -677,20 +689,28 @@ if pagina == "📊 Relatórios e Gráficos":
 
         st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
-        # ============================
+        # ----------------------------
         # GERAR PDF PROFISSIONAL
-        # ============================
+        # ----------------------------
         st.markdown("## 📝 Gerar Relatório em PDF")
 
-        pdf_bytes = None
         if st.button("📄 Gerar PDF profissional"):
             pdf_bytes = gerar_pdf_profissional(r)
             st.success("PDF gerado com sucesso! Use o botão abaixo para baixar.")
 
-        if pdf_bytes:
             st.download_button(
                 label="⬇️ Baixar PDF",
                 data=pdf_bytes,
                 file_name="relatorio_asseuf.pdf",
                 mime="application/pdf"
             )
+
+        st.markdown("""
+        <div class="elevated-card">
+            <div class="section-title">Fim do relatório</div>
+            <p>
+                Utilize os gráficos, métricas e o PDF profissional para auditoria,
+                prestação de contas e análise financeira das rotas.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
