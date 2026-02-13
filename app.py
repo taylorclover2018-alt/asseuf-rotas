@@ -409,7 +409,7 @@ pagina = st.sidebar.radio(
 )
 
 # ============================================================
-# PÁGINA 1 — INÍCIO (COM DESCRIÇÃO ATUALIZADA DA METODOLOGIA)
+# PÁGINA 1 — INÍCIO (COM DESCRIÇÃO CORRIGIDA E COMPLETA)
 # ============================================================
 if pagina == "🏠 Início":
     st.markdown("<h1>Bem-vindo ao Sistema da ASSEUF</h1>", unsafe_allow_html=True)
@@ -472,7 +472,7 @@ if pagina == "🏠 Início":
             <b>Rota Curvelo:</b> Bruto R$ 8.000 | Passagens R$ 1.000 → Abate 10%: R$ 100 → Bruto ajustado: R$ 7.900<br>
             <b>Auxílio total:</b> R$ 5.000<br>
             <b>Distribuição proporcional:</b> 7L: R$ 5.000 × (9.800 / 17.700) = R$ 2.768 | Curvelo: R$ 2.232<br>
-            <b>Ajuste por diárias:</b> Se 7L rodou 5 dias a mais, recebe +20% do excedente...
+            <b>Ajuste por diárias:</b> Se 7L rodou 5 dias a mais que Curvelo, o cálculo do ajuste fino é aplicado automaticamente pelo sistema.
         </p>
         
         <h3>5. Líquido, Alunos Equivalentes e Mensalidade</h3>
@@ -522,8 +522,8 @@ if pagina == "🧮 Cadastro e Cálculo":
 
             for i in range(qtd_7l):
                 tipo = st.text_input(f"Tipo do veículo {i+1}", key=f"t7{i}")
-                valor = st.number_input(f"Valor da diária ({tipo})", min_value=0.0, step=10.0, key=f"v7{i}")
-                dias = st.number_input(f"Diárias rodadas ({tipo})", min_value=0, step=1, key=f"d7{i}")
+                valor = st.number_input(f"Valor da diária ({tipo if tipo else '...'})", min_value=0.0, step=10.0, key=f"v7{i}")
+                dias = st.number_input(f"Diárias rodadas ({tipo if tipo else '...'})", min_value=0, step=1, key=f"d7{i}")
                 if tipo:
                     veic_7l[tipo] = {"valor": valor, "dias": dias}
 
@@ -565,8 +565,8 @@ if pagina == "🧮 Cadastro e Cálculo":
 
             for i in range(qtd_cur):
                 tipo = st.text_input(f"Tipo do veículo {i+1}", key=f"tc{i}")
-                valor = st.number_input(f"Valor da diária ({tipo})", min_value=0.0, step=10.0, key=f"vc{i}")
-                dias = st.number_input(f"Diárias rodadas ({tipo})", min_value=0, step=1, key=f"dc{i}")
+                valor = st.number_input(f"Valor da diária ({tipo if tipo else '...'})", min_value=0.0, step=10.0, key=f"vc{i}")
+                dias = st.number_input(f"Diárias rodadas ({tipo if tipo else '...'})", min_value=0, step=1, key=f"dc{i}")
                 if tipo:
                     veic_cur[tipo] = {"valor": valor, "dias": dias}
 
@@ -618,6 +618,10 @@ if pagina == "🧮 Cadastro e Cálculo":
         # --- NOVA REGRA: abater 10% das passagens do bruto de CADA ROTA ---
         bruto_aj_7l = bruto_7l - (0.10 * pass_7l)
         bruto_aj_cur = bruto_cur - (0.10 * pass_cur)
+
+        # Garantir que o bruto ajustado não seja negativo
+        bruto_aj_7l = max(0, bruto_aj_7l)
+        bruto_aj_cur = max(0, bruto_aj_cur)
 
         # Distribuição do auxílio proporcional ao bruto ajustado + ajuste 70/30
         aux_ideal_7l, aux_ideal_cur = distribuir_auxilio_por_diarias(
@@ -672,9 +676,4 @@ if pagina == "🧮 Cadastro e Cálculo":
             "custo_extra_cur": custo_extra_cur,
         }
 
-        st.success("✅ Cálculo realizado com a NOVA METODOLOGIA! Vá para a aba 'Relatórios e Gráficos'.")
-        st.balloons()
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-#
+        st.success("✅ Cálculo realizado com a NOVA METODOLOGIA! Vá para a
