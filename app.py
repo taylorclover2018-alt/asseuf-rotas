@@ -1,21 +1,21 @@
 from pathlib import Path
 import streamlit as st
-import io
-import os
-import altair as alt
 import pandas as pd
+import altair as alt
 import base64
 import qrcode
 from io import BytesIO
 from weasyprint import HTML
+from datetime import datetime
 
 # ============================================================
-# CONFIGURAÇÃO DA PÁGINA
+# CONFIGURAÇÃO DA PÁGINA (PRIMEIRO COMANDO OBRIGATÓRIO)
 # ============================================================
 st.set_page_config(
     page_title="Sistema de Cálculo das Rotas - ASSEUF",
     page_icon="🚌",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # ============================================================
@@ -33,7 +33,7 @@ def carregar_logo():
 carregar_logo()
 
 # ============================================================
-# CSS PREMIUM + FONTES
+# CSS PREMIUM - NEON DARK, CARDS ELEVADOS, FONTES MODERNAS
 # ============================================================
 st.markdown("""
     <style>
@@ -140,20 +140,34 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================================
-# FUNÇÕES DO SISTEMA
+# FUNÇÕES DO SISTEMA - NÚCLEO DE CÁLCULO
 # ============================================================
 
 def alunos_equivalentes(integrais: int, descontos: dict) -> float:
-    total = integrais
+    """
+    Calcula alunos equivalentes considerando:
+    - integrais contam como 1,0
+    - descontos contam proporcionalmente (ex: 50% = 0,5)
+    """
+    total = float(integrais)
     for pct, qtd in descontos.items():
-        fator = (100 - pct) / 100
+        fator = (100 - pct) / 100.0
         total += qtd * fator
     return total
 
 def calcular_bruto(veiculos: dict) -> float:
+    """
+    Soma valor * dias de todos os veículos cadastrados.
+    """
     return sum(v["valor"] * v["dias"] for v in veiculos.values())
 
 def distribuir_auxilio_por_diarias(aux_total: float, bruto_aj_7l: float, bruto_aj_cur: float, d7: int, dC: int):
+    """
+    Divide o auxílio entre as rotas considerando:
+    - Distribuição proporcional ao BRUTO AJUSTADO de cada rota
+    - Bruto ajustado = bruto original - 10% das passagens da própria rota
+    - Regra 70/30 aplicada como ajuste fino sobre as diárias excedentes
+    """
     if d7 == 0 and dC == 0:
         return 0.0, 0.0
     
@@ -162,9 +176,11 @@ def distribuir_auxilio_por_diarias(aux_total: float, bruto_aj_7l: float, bruto_a
     if total_bruto_aj <= 0:
         return 0.0, 0.0
     
+    # Distribuição proporcional ao bruto ajustado
     aux_7l_proporcional = aux_total * (bruto_aj_7l / total_bruto_aj)
     aux_cur_proporcional = aux_total * (bruto_aj_cur / total_bruto_aj)
     
+    # Ajuste fino 70/30 baseado nas diárias
     if d7 > dC and dC > 0:
         excedente = d7 - dC
         base = dC
@@ -185,9 +201,11 @@ def distribuir_auxilio_por_diarias(aux_total: float, bruto_aj_7l: float, bruto_a
         aux_7l = aux_7l_proporcional
         aux_cur = aux_cur_proporcional
     
+    # Garantir valores não negativos
     aux_7l = max(0, aux_7l)
     aux_cur = max(0, aux_cur)
     
+    # Rebalancear para soma exata
     soma = aux_7l + aux_cur
     if soma > 0:
         fator_ajuste = aux_total / soma
@@ -197,6 +215,9 @@ def distribuir_auxilio_por_diarias(aux_total: float, bruto_aj_7l: float, bruto_a
     return aux_7l, aux_cur
 
 def gerar_qr_base64(texto: str) -> str:
+    """
+    Gera QR Code em base64 para embutir no PDF.
+    """
     qr = qrcode.QRCode(box_size=4, border=1)
     qr.add_data(texto)
     qr.make(fit=True)
@@ -206,75 +227,114 @@ def gerar_qr_base64(texto: str) -> str:
     return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 def gerar_pdf_profissional(r: dict) -> bytes:
+    """
+    Gera PDF profissional com cabeçalho, QR Code, tabelas e observações.
+    """
     qr_b64 = gerar_qr_base64(f"Relatório ASSEUF - {r.get('mes_ref', 'Mês atual')}")
+    
+    def fmt_brl(val):
+        try:
+            return f"R$ {float(val):,.2f}"
+        except:
+            return "R$ 0,00"
 
     html = f"""
-    <html>
+    <!DOCTYPE html>
+    <html lang="pt-BR">
     <head>
-        <meta charset="utf-8">
+        <meta charset="UTF-8">
+        <title>Relatório ASSEUF - {r.get('mes_ref', '')}</title>
         <style>
+            @page {{ size: A4; margin: 1.8cm; }}
             body {{
-                font-family: Arial, sans-serif;
-                margin: 30px;
-                color: #222;
-            }}
-            h1, h2, h3 {{
-                color: #00695c;
+                font-family: 'Helvetica', 'Arial', sans-serif;
+                color: #2c3e50;
+                line-height: 1.5;
             }}
             .header {{
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                border-bottom: 2px solid #00695c;
-                padding-bottom: 10px;
-                margin-bottom: 20px;
+                border-bottom: 3px solid #00e676;
+                padding-bottom: 12px;
+                margin-bottom: 25px;
             }}
-            .logo-title {{
-                display: flex;
-                flex-direction: column;
+            .title h1 {{
+                color: #00695c;
+                font-size: 24px;
+                margin: 0;
             }}
-            .qr {{
-                text-align: right;
+            .title span {{
+                font-size: 12px;
+                color: #7f8c8d;
+            }}
+            .qr img {{
+                width: 90px;
+                height: 90px;
+            }}
+            h2 {{
+                color: #004d40;
+                font-size: 18px;
+                margin-top: 25px;
+                margin-bottom: 10px;
+                border-left: 5px solid #00e676;
+                padding-left: 10px;
             }}
             table {{
                 width: 100%;
                 border-collapse: collapse;
-                margin-top: 15px;
                 margin-bottom: 20px;
-            }}
-            th, td {{
-                border: 1px solid #bbb;
-                padding: 6px 8px;
                 font-size: 12px;
             }}
             th {{
                 background-color: #e0f2f1;
-            }}
-            .section-title {{
-                margin-top: 25px;
-                font-size: 16px;
-                font-weight: bold;
                 color: #004d40;
+                padding: 10px 5px;
+                border: 1px solid #b0bec5;
+                text-align: center;
+                font-weight: 600;
             }}
-            .small {{
+            td {{
+                padding: 8px 5px;
+                border: 1px solid #b0bec5;
+                text-align: right;
+            }}
+            td:first-child {{
+                text-align: left;
+                font-weight: 500;
+            }}
+            .obs {{
+                background-color: #f9f9f9;
+                padding: 12px;
+                border-left: 4px solid #00e676;
+                font-style: italic;
                 font-size: 11px;
-                color: #555;
+            }}
+            .footer {{
+                margin-top: 40px;
+                text-align: center;
+                font-size: 10px;
+                color: #95a5a6;
+                border-top: 1px solid #ecf0f1;
+                padding-top: 15px;
             }}
         </style>
     </head>
     <body>
         <div class="header">
-            <div class="logo-title">
-                <h1>ASSEUF - Relatório Mensal</h1>
-                <span class="small">Sistema de Cálculo das Rotas - 7 Lagoas e Curvelo</span>
+            <div class="title">
+                <h1>ASSEUF • Relatório Mensal</h1>
+                <span>Sistema de Cálculo das Rotas - 7 Lagoas & Curvelo</span>
             </div>
             <div class="qr">
-                <img src="data:image/png;base64,{qr_b64}" width="90">
-                <div class="small">Validação do relatório</div>
+                <img src="data:image/png;base64,{qr_b64}" alt="QR Code">
+                <p style="font-size:9px; margin:0;">Validação do relatório</p>
             </div>
         </div>
 
-        <h2>Resumo Financeiro</h2>
+        <p style="font-size:14px;"><strong>Mês de referência:</strong> {r.get('mes_ref', 'Não informado')}</p>
+
+        <h2>📊 Resumo Financeiro</h2>
         <table>
             <tr>
                 <th>Indicador</th>
@@ -284,37 +344,37 @@ def gerar_pdf_profissional(r: dict) -> bytes:
             </tr>
             <tr>
                 <td>Custo bruto original</td>
-                <td>R$ {r["bruto_7l"]:,.2f}</td>
-                <td>R$ {r["bruto_cur"]:,.2f}</td>
-                <td>R$ {r["bruto_7l"] + r["bruto_cur"]:,.2f}</td>
+                <td>{fmt_brl(r['bruto_7l'])}</td>
+                <td>{fmt_brl(r['bruto_cur'])}</td>
+                <td>{fmt_brl(r['bruto_7l'] + r['bruto_cur'])}</td>
             </tr>
             <tr>
                 <td>(-) 10% das passagens (própria rota)</td>
-                <td>R$ {r["pass_7l"] * 0.1:,.2f}</td>
-                <td>R$ {r["pass_cur"] * 0.1:,.2f}</td>
-                <td>R$ {(r["pass_7l"] + r["pass_cur"]) * 0.1:,.2f}</td>
+                <td>{fmt_brl(r['pass_7l'] * 0.1)}</td>
+                <td>{fmt_brl(r['pass_cur'] * 0.1)}</td>
+                <td>{fmt_brl((r['pass_7l'] + r['pass_cur']) * 0.1)}</td>
             </tr>
             <tr>
                 <td><strong>Custo bruto ajustado</strong></td>
-                <td><strong>R$ {r["bruto_aj_7l"]:,.2f}</strong></td>
-                <td><strong>R$ {r["bruto_aj_cur"]:,.2f}</strong></td>
-                <td><strong>R$ {r["bruto_aj_7l"] + r["bruto_aj_cur"]:,.2f}</strong></td>
+                <td><strong>{fmt_brl(r['bruto_aj_7l'])}</strong></td>
+                <td><strong>{fmt_brl(r['bruto_aj_cur'])}</strong></td>
+                <td><strong>{fmt_brl(r['bruto_aj_7l'] + r['bruto_aj_cur'])}</strong></td>
             </tr>
             <tr>
                 <td>Auxílio recebido</td>
-                <td>R$ {r["aux_ideal_7l"]:,.2f}</td>
-                <td>R$ {r["aux_ideal_cur"]:,.2f}</td>
-                <td>R$ {r["aux_ideal_7l"] + r["aux_ideal_cur"]:,.2f}</td>
+                <td>{fmt_brl(r['aux_ideal_7l'])}</td>
+                <td>{fmt_brl(r['aux_ideal_cur'])}</td>
+                <td>{fmt_brl(r['aux_ideal_7l'] + r['aux_ideal_cur'])}</td>
             </tr>
             <tr>
                 <td><strong>Líquido final (custo - auxílio)</strong></td>
-                <td><strong>R$ {r["liquido_7l"]:,.2f}</strong></td>
-                <td><strong>R$ {r["liquido_cur"]:,.2f}</strong></td>
-                <td><strong>R$ {r["liquido_7l"] + r["liquido_cur"]:,.2f}</strong></td>
+                <td><strong>{fmt_brl(r['liquido_7l'])}</strong></td>
+                <td><strong>{fmt_brl(r['liquido_cur'])}</strong></td>
+                <td><strong>{fmt_brl(r['liquido_7l'] + r['liquido_cur'])}</strong></td>
             </tr>
         </table>
 
-        <h2>Alunos e Mensalidades</h2>
+        <h2>👥 Alunos e Mensalidades</h2>
         <table>
             <tr>
                 <th>Rota</th>
@@ -324,63 +384,66 @@ def gerar_pdf_profissional(r: dict) -> bytes:
             </tr>
             <tr>
                 <td>7 Lagoas</td>
-                <td>{r["int_7l"]}</td>
-                <td>{r["al_eq_7l"]:,.2f}</td>
-                <td>R$ {r["mensal_7l"]:,.2f}</td>
+                <td style="text-align:center;">{r['int_7l']}</td>
+                <td style="text-align:center;">{r['al_eq_7l']:.2f}</td>
+                <td>{fmt_brl(r['mensal_7l'])}</td>
             </tr>
             <tr>
                 <td>Curvelo</td>
-                <td>{r["int_cur"]}</td>
-                <td>{r["al_eq_cur"]:,.2f}</td>
-                <td>R$ {r["mensal_cur"]:,.2f}</td>
-            </tr>
-        </table>
-        
-        <h3>Dados Operacionais</h3>
-        <table>
-            <tr>
-                <th>Rota</th>
-                <th>Diárias rodadas</th>
-                <th>Veículos</th>
-            </tr>
-            <tr>
-                <td>7 Lagoas</td>
-                <td>{r["diarias_7l"]} dias</td>
-                <td>{r.get("veic_sete", 0)}</td>
-            </tr>
-            <tr>
-                <td>Curvelo</td>
-                <td>{r["diarias_cur"]} dias</td>
-                <td>{r.get("veic_cur", 0)}</td>
+                <td style="text-align:center;">{r['int_cur']}</td>
+                <td style="text-align:center;">{r['al_eq_cur']:.2f}</td>
+                <td>{fmt_brl(r['mensal_cur'])}</td>
             </tr>
         </table>
 
-        <h3 class="section-title">Observações</h3>
-        <p class="small">
+        <h2>🚌 Informações Operacionais</h2>
+        <table>
+            <tr>
+                <th>Rota</th>
+                <th>Nº de veículos</th>
+                <th>Total de diárias</th>
+                <th>Diárias motoristas</th>
+                <th>Custos extras</th>
+            </tr>
+            <tr>
+                <td>7 Lagoas</td>
+                <td style="text-align:center;">{r.get('veic_sete', 0)}</td>
+                <td style="text-align:center;">{r['diarias_7l']}</td>
+                <td>{fmt_brl(r.get('diaria_sete', 0))}</td>
+                <td>{fmt_brl(r.get('custo_extra_sete', 0))}</td>
+            </tr>
+            <tr>
+                <td>Curvelo</td>
+                <td style="text-align:center;">{r.get('veic_cur', 0)}</td>
+                <td style="text-align:center;">{r['diarias_cur']}</td>
+                <td>{fmt_brl(r.get('diaria_cur', 0))}</td>
+                <td>{fmt_brl(r.get('custo_extra_cur', 0))}</td>
+            </tr>
+        </table>
+
+        <h2>📋 Observações do Mês</h2>
+        <div class="obs">
             {r.get('obs_gerais', 'Nenhuma observação registrada.')}
-        </p>
-        <p class="small">
-            <strong>Metodologia aplicada:</strong> O custo bruto de cada rota é reduzido em 10% do valor das 
-            passagens arrecadadas pela própria rota. O auxílio total é distribuído proporcionalmente ao 
-            custo bruto ajustado de cada rota, com ajuste fino de 70/30 baseado na diferença de diárias 
-            rodadas. A mensalidade por aluno equivalente é calculada dividindo o líquido final 
-            (custo bruto ajustado - auxílio recebido) pelo total de alunos equivalentes.
-        </p>
+        </div>
+
+        <div class="footer">
+            Relatório gerado automaticamente pelo Sistema ASSEUF em {datetime.now().strftime('%d/%m/%Y às %H:%M')}.<br>
+            Metodologia: custo bruto abatido de 10% das passagens por rota; distribuição proporcional ao custo ajustado + regra 70/30; mensalidade baseada em alunos equivalentes.
+        </div>
     </body>
     </html>
     """
     return HTML(string=html).write_pdf()
 
 # ============================================================
-# MENU LATERAL
+# MENU DE NAVEGAÇÃO LATERAL
 # ============================================================
 pagina = st.sidebar.radio(
     "Navegação",
     ["🏠 Início", "🧮 Cadastro e Cálculo", "📊 Relatórios e Gráficos"]
 )
-
 # ============================================================
-# PÁGINA 1 — INÍCIO
+# PÁGINA 1 — INÍCIO (EXPLICAÇÃO COMPLETA DA METODOLOGIA)
 # ============================================================
 if pagina == "🏠 Início":
     st.markdown("<h1>Bem-vindo ao Sistema da ASSEUF</h1>", unsafe_allow_html=True)
@@ -418,6 +481,11 @@ if pagina == "🏠 Início":
             Após o abatimento dos 10% das passagens, temos o <b>custo bruto ajustado</b> de cada rota.
             O auxílio total é então distribuído <b>proporcionalmente ao custo bruto ajustado</b> de cada rota.
         </p>
+        <p>
+            Isso garante que rotas com maior custo operacional (mais veículos, mais diárias, 
+            maior distância) recebam uma parcela maior do auxílio, independentemente da arrecadação 
+            de passagens.
+        </p>
         
         <h3>3. Regra de Compensação 70% / 30% (ajuste fino por diárias)</h3>
         <p>
@@ -427,31 +495,46 @@ if pagina == "🏠 Início":
             <li>A rota que rodou <b>mais diárias</b> recebe um acréscimo de <b>20% do valor proporcional ao excedente</b>;</li>
             <li>A rota que rodou <b>menos diárias</b> tem esse mesmo valor deduzido do seu auxílio.</li>
         </ul>
+        <p>
+            Isso corresponde à regra 70/30 sobre as diárias excedentes, mas aplicada como ajuste 
+            sobre a distribuição baseada no custo.
+        </p>
         
         <h3>4. Exemplo Prático</h3>
         <p>
             <b>Rota 7 Lagoas:</b> Bruto R$ 10.000 | Passagens R$ 2.000 → Abate 10%: R$ 200 → Bruto ajustado: R$ 9.800<br>
             <b>Rota Curvelo:</b> Bruto R$ 8.000 | Passagens R$ 1.000 → Abate 10%: R$ 100 → Bruto ajustado: R$ 7.900<br>
-            <b>Auxílio total:</b> R$ 5.000
+            <b>Auxílio total:</b> R$ 5.000<br>
+            <b>Distribuição proporcional:</b> 7L: R$ 5.000 × (9.800 / 17.700) = R$ 2.768 | Curvelo: R$ 2.232<br>
+            <b>Ajuste por diárias:</b> Se 7L rodou 5 dias a mais que Curvelo, o sistema aplica automaticamente o ajuste de 20% sobre o excedente.
         </p>
         
-        <h3>5. Benefícios da Nova Metodologia</h3>
+        <h3>5. Líquido, Alunos Equivalentes e Mensalidade</h3>
+        <p>
+            O <b>Líquido final</b> de cada rota é obtido subtraindo o auxílio recebido do custo bruto ajustado.
+            Este valor é então dividido pelos <b>alunos equivalentes</b> (integrais = 1,0; descontos = proporcional),
+            gerando a <b>mensalidade base</b> por aluno equivalente.
+        </p>
+        
+        <h3>6. Benefícios da Nova Metodologia</h3>
         <ul>
             <li><b>✅ Justiça tributária:</b> quem arrecada mais passagens paga mais para reduzir seu próprio custo;</li>
             <li><b>✅ Proporcionalidade real:</b> o auxílio é distribuído onde o custo é maior;</li>
             <li><b>✅ Equilíbrio operacional:</b> ajuste 70/30 compensa esforço de quem roda mais diárias;</li>
             <li><b>✅ Transparência total:</b> todos os cálculos são claros e auditáveis;</li>
             <li><b>✅ Profissionalismo:</b> relatório PDF com QR Code e todos os detalhes.</li>
+            <li><b>✅ Efeito visual:</b> balões comemorativos ao finalizar o cálculo!</li>
         </ul>
     </div>
     """, unsafe_allow_html=True)
 
 # ============================================================
-# PÁGINA 2 — CADASTRO E CÁLCULO
+# PÁGINA 2 — CADASTRO E CÁLCULO (COM CAMPOS EXTRAS E BALÕES)
 # ============================================================
 if pagina == "🧮 Cadastro e Cálculo":
     st.markdown("<h1>Cadastro e Cálculo</h1>", unsafe_allow_html=True)
     
+    # ---------- MÊS DE REFERÊNCIA ----------
     st.markdown("### 🗓️ Mês de referência")
     mes_ref = st.text_input(
         "Identificação do período (ex: Janeiro/2025, Março/2025)",
@@ -461,9 +544,7 @@ if pagina == "🧮 Cadastro e Cálculo":
 
     colA, colB = st.columns(2)
 
-    # ----------------------------
-    # CARD 7 LAGOAS
-    # ----------------------------
+    # ========== ROTA 7 LAGOAS ==========
     with colA:
         with st.expander("🟦 Rota 7 Lagoas - dados completos", expanded=False):
             st.markdown('<div class="elevated-card">', unsafe_allow_html=True)
@@ -504,9 +585,7 @@ if pagina == "🧮 Cadastro e Cálculo":
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # ----------------------------
-    # CARD CURVELO
-    # ----------------------------
+    # ========== ROTA CURVELO ==========
     with colB:
         with st.expander("🟩 Rota Curvelo - dados completos", expanded=False):
             st.markdown('<div class="elevated-card">', unsafe_allow_html=True)
@@ -546,44 +625,55 @@ if pagina == "🧮 Cadastro e Cálculo":
             custo_extra_cur = st.number_input("Custos extras (manutenção, pedágio, etc.) - Curvelo", min_value=0.0, step=10.0, key="custo_extra_cur")
 
             st.markdown('</div>', unsafe_allow_html=True)
-    # ----------------------------
-    # PROCESSAMENTO
-    # ----------------------------
-    st.markdown('<div class="calc-card">', unsafe_allow_html=True)
-    st.markdown("## ⚙️ Processar Resultados")
 
-    aux_total = st.number_input("Auxílio total do mês:", min_value=0.0, step=100.0)
+    # ---------- PROCESSAMENTO CENTRAL ----------
+    st.markdown('<div class="calc-card">', unsafe_allow_html=True)
+    st.markdown("## ⚙️ Processar Resultados do Mês")
+
+    aux_total = st.number_input(
+        "Auxílio total do mês (R$):",
+        min_value=0.0, step=100.0,
+        help="Valor total disponível para distribuição entre as duas rotas."
+    )
+
     obs_gerais = st.text_area(
         "📝 Observações gerais do mês (opcional)",
         placeholder="Registre aqui qualquer informação relevante: feriados, manutenções, eventos especiais..."
     )
 
-    if st.button("🔍 CALCULAR"):
+    if st.button("🔍 CALCULAR E GERAR RESULTADOS"):
+        # Cálculos base
         bruto_7l = calcular_bruto(veic_7l)
         bruto_cur = calcular_bruto(veic_cur)
 
         diarias_7l = sum(v["dias"] for v in veic_7l.values())
         diarias_cur = sum(v["dias"] for v in veic_cur.values())
 
+        # NOVA REGRA: abater 10% das passagens do bruto de cada rota
         bruto_aj_7l = bruto_7l - (0.10 * pass_7l)
         bruto_aj_cur = bruto_cur - (0.10 * pass_cur)
 
         bruto_aj_7l = max(0, bruto_aj_7l)
         bruto_aj_cur = max(0, bruto_aj_cur)
 
-        aux_ideal_7l, aux_ideal_cur = distribuir_auxilio_por_diarias(
+        # Distribuição do auxílio
+        aux_7l, aux_cur = distribuir_auxilio_por_diarias(
             aux_total, bruto_aj_7l, bruto_aj_cur, diarias_7l, diarias_cur
         )
 
+        # Alunos equivalentes
         al_eq_7l = alunos_equivalentes(int_7l, desc_7l)
         al_eq_cur = alunos_equivalentes(int_cur, desc_cur)
 
-        liquido_7l = bruto_aj_7l - aux_ideal_7l
-        liquido_cur = bruto_aj_cur - aux_ideal_cur
+        # Líquido final
+        liquido_7l = bruto_aj_7l - aux_7l
+        liquido_cur = bruto_aj_cur - aux_cur
 
-        mensal_7l = liquido_7l / al_eq_7l if al_eq_7l > 0 else 0
-        mensal_cur = liquido_cur / al_eq_cur if al_eq_cur > 0 else 0
+        # Mensalidade base
+        mensal_7l = liquido_7l / al_eq_7l if al_eq_7l > 0 else 0.0
+        mensal_cur = liquido_cur / al_eq_cur if al_eq_cur > 0 else 0.0
 
+        # ---------- ARMAZENAMENTO EM SESSION_STATE ----------
         st.session_state["resultados"] = {
             "mes_ref": mes_ref,
             "aux_total": aux_total,
@@ -591,7 +681,7 @@ if pagina == "🧮 Cadastro e Cálculo":
             "bruto_7l": bruto_7l,
             "pass_7l": pass_7l,
             "bruto_aj_7l": bruto_aj_7l,
-            "aux_ideal_7l": aux_ideal_7l,
+            "aux_ideal_7l": aux_7l,
             "liquido_7l": liquido_7l,
             "int_7l": int_7l,
             "desc_7l": desc_7l,
@@ -604,7 +694,7 @@ if pagina == "🧮 Cadastro e Cálculo":
             "bruto_cur": bruto_cur,
             "pass_cur": pass_cur,
             "bruto_aj_cur": bruto_aj_cur,
-            "aux_ideal_cur": aux_ideal_cur,
+            "aux_ideal_cur": aux_cur,
             "liquido_cur": liquido_cur,
             "int_cur": int_cur,
             "desc_cur": desc_cur,
@@ -616,13 +706,12 @@ if pagina == "🧮 Cadastro e Cálculo":
             "custo_extra_cur": custo_extra_cur,
         }
 
-        st.success("✅ Cálculo realizado com a NOVA METODOLOGIA! Vá para a aba 'Relatórios e Gráficos'.")
-        st.balloons()
+        st.success("✅ Cálculo realizado com a NOVA METODOLOGIA! Acesse a aba 'Relatórios e Gráficos' para visualizar os resultados e baixar o PDF.")
+        st.balloons()  # 🎈 EFEITO DOS BALÕES - VOCÊ PEDIU E ESTÁ AQUI!
 
     st.markdown('</div>', unsafe_allow_html=True)
-
 # ============================================================
-# PÁGINA 3 — RELATÓRIOS E GRÁFICOS (COM PDF E BALÕES)
+# PÁGINA 3 — RELATÓRIOS E GRÁFICOS (COM PDF E ANÁLISES)
 # ============================================================
 if pagina == "📊 Relatórios e Gráficos":
     st.markdown("<h1>Relatórios e Análises Visuais</h1>", unsafe_allow_html=True)
@@ -632,8 +721,9 @@ if pagina == "📊 Relatórios e Gráficos":
     else:
         r = st.session_state["resultados"]
 
-        # MÉTRICAS
+        # ---------- MÉTRICAS PRINCIPAIS EM CARDS ----------
         col1, col2, col3, col4 = st.columns(4)
+
         with col1:
             st.markdown('<div class="metric-card">', unsafe_allow_html=True)
             st.markdown('<div class="metric-label">Auxílio total</div>', unsafe_allow_html=True)
@@ -653,4 +743,240 @@ if pagina == "📊 Relatórios e Gráficos":
             total_pass = r["pass_7l"] + r["pass_cur"]
             st.markdown('<div class="metric-card">', unsafe_allow_html=True)
             st.markdown('<div class="metric-label">Passagens totais</div>', unsafe_allow_html=True)
-            st
+            st.markdown(f'<div class="metric-value">R$ {total_pass:,.2f}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="metric-sub">10% abatido no bruto</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with col4:
+            total_liquido = r["liquido_7l"] + r["liquido_cur"]
+            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
+            st.markdown('<div class="metric-label">Líquido total</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-value">R$ {total_liquido:,.2f}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="metric-sub">a ratear entre alunos</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+        # ---------- GRÁFICO 1: DISTRIBUIÇÃO DO AUXÍLIO ----------
+        st.markdown("### 📊 Distribuição do Auxílio entre as Rotas")
+
+        aux_data = pd.DataFrame([
+            {"Rota": "7 Lagoas", "Auxílio": r["aux_ideal_7l"]},
+            {"Rota": "Curvelo", "Auxílio": r["aux_ideal_cur"]},
+        ])
+
+        soma_aux = aux_data["Auxílio"].sum()
+        if soma_aux > 0:
+            aux_data["Percentual"] = aux_data["Auxílio"] / soma_aux * 100
+        else:
+            aux_data["Percentual"] = 0.0
+
+        chart_aux = alt.Chart(aux_data).mark_arc(outerRadius=110).encode(
+            theta=alt.Theta(field="Auxílio", type="quantitative"),
+            color=alt.Color("Rota", scale=alt.Scale(range=["#00e676", "#40c4ff"])),
+            tooltip=[
+                alt.Tooltip("Rota", title="Rota"),
+                alt.Tooltip("Auxílio", title="Auxílio (R$)", format=",.2f"),
+                alt.Tooltip("Percentual", title="% do total", format=".2f")
+            ]
+        ).properties(
+            width=380,
+            height=320,
+            title="Participação no auxílio"
+        )
+
+        colA, colB = st.columns(2)
+        with colA:
+            st.altair_chart(chart_aux, use_container_width=True)
+        with colB:
+            st.markdown("""
+            <div class="elevated-card">
+                <div class="section-title">Interpretação</div>
+                <p>
+                    Este gráfico mostra a <b>porcentagem do auxílio</b> que cada rota recebe após a aplicação 
+                    da metodologia (proporcional ao custo ajustado + regra 70/30).
+                </p>
+                <p>
+                    Quanto maior a fatia, maior a participação da rota no auxílio daquele mês.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+        # ---------- GRÁFICO 2: COMPARAÇÃO DAS PASSAGENS ----------
+        st.markdown("### 💸 Comparação da Arrecadação de Passagens")
+
+        pass_data = pd.DataFrame([
+            {"Rota": "7 Lagoas", "Passagens": r["pass_7l"]},
+            {"Rota": "Curvelo", "Passagens": r["pass_cur"]},
+        ])
+
+        chart_pass = alt.Chart(pass_data).mark_bar(size=60, cornerRadiusTopLeft=8, cornerRadiusTopRight=8).encode(
+            x=alt.X("Rota", sort=None),
+            y=alt.Y("Passagens", title="Valor arrecadado (R$)"),
+            color=alt.Color("Rota", scale=alt.Scale(range=["#00e676", "#40c4ff"])),
+            tooltip=[
+                alt.Tooltip("Rota", title="Rota"),
+                alt.Tooltip("Passagens", title="Passagens (R$)", format=",.2f")
+            ]
+        ).properties(
+            width=420,
+            height=320,
+            title="Passagens por rota"
+        )
+
+        colC, colD = st.columns(2)
+        with colC:
+            st.altair_chart(chart_pass, use_container_width=True)
+        with colD:
+            st.markdown("""
+            <div class="elevated-card">
+                <div class="section-title">Detalhe operacional</div>
+                <p>
+                    <strong>10% das passagens</strong> de cada rota são abatidos diretamente do seu custo bruto,
+                    antes do cálculo do auxílio. Rotas com maior arrecadação contribuem mais para reduzir seu próprio custo.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+        # ---------- GRÁFICO 3: ALUNOS ----------
+        st.markdown("### 👥 Alunos Integrais vs Equivalentes")
+
+        alunos_data = pd.DataFrame([
+            {"Rota": "7 Lagoas", "Tipo": "Integrais", "Quantidade": r["int_7l"]},
+            {"Rota": "7 Lagoas", "Tipo": "Equivalentes", "Quantidade": round(r["al_eq_7l"], 1)},
+            {"Rota": "Curvelo", "Tipo": "Integrais", "Quantidade": r["int_cur"]},
+            {"Rota": "Curvelo", "Tipo": "Equivalentes", "Quantidade": round(r["al_eq_cur"], 1)},
+        ])
+
+        chart_alunos = alt.Chart(alunos_data).mark_bar().encode(
+            x=alt.X("Rota:N", title="Rota"),
+            y=alt.Y("Quantidade:Q", title="Quantidade"),
+            color=alt.Color("Tipo:N", scale=alt.Scale(range=["#00e676", "#ffb300"])),
+            column=alt.Column("Tipo:N", title="")
+        ).properties(
+            width=200,
+            height=300
+        )
+
+        st.altair_chart(chart_alunos, use_container_width=True)
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+        # ---------- RESUMO OPERACIONAL ----------
+        st.markdown("### 🚌 Resumo Operacional do Mês")
+        
+        col_op1, col_op2, col_op3 = st.columns(3)
+        with col_op1:
+            st.markdown(f"**Mês:** {r.get('mes_ref', 'Não informado')}")
+            st.markdown(f"**Diárias 7L:** {r['diarias_7l']} dias")
+            st.markdown(f"**Diárias Curvelo:** {r['diarias_cur']} dias")
+        with col_op2:
+            st.markdown(f"**Veículos 7L:** {r.get('veic_sete', 0)}")
+            st.markdown(f"**Diárias motoristas 7L:** R$ {r.get('diaria_sete', 0):,.2f}")
+            st.markdown(f"**Custos extras 7L:** R$ {r.get('custo_extra_sete', 0):,.2f}")
+        with col_op3:
+            st.markdown(f"**Veículos Curvelo:** {r.get('veic_cur', 0)}")
+            st.markdown(f"**Diárias motoristas Curvelo:** R$ {r.get('diaria_cur', 0):,.2f}")
+            st.markdown(f"**Custos extras Curvelo:** R$ {r.get('custo_extra_cur', 0):,.2f}")
+
+        st.markdown("#### 📋 Observações")
+        st.info(r.get('obs_gerais', 'Nenhuma observação registrada.'))
+
+        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+
+        # ---------- DOWNLOAD DO PDF ----------
+        st.markdown("### 📄 Relatório Profissional em PDF")
+        st.markdown("Gere um relatório completo com todos os dados, tabelas, QR Code e formatação profissional.")
+
+        if st.button("📥 Gerar PDF do Relatório"):
+            try:
+                with st.spinner("Gerando PDF... Isso pode levar alguns segundos."):
+                    pdf_bytes = gerar_pdf_profissional(r)
+                    
+                st.download_button(
+                    label="⬇️ Clique para baixar o PDF",
+                    data=pdf_bytes,
+                    file_name=f"relatorio_asseuf_{r.get('mes_ref', 'sem_mes').replace('/', '_')}.pdf",
+                    mime="application/pdf"
+                )
+                st.success("✅ PDF gerado com sucesso!")
+            except Exception as e:
+                st.error(f"Erro ao gerar PDF: {e}")
+                st.warning("""
+                **Dica para deploy no Render:**  
+                Adicione um arquivo `aptfile` na raiz com:
+                ```
+                libpango-1.0-0
+                libpangoft2-1.0-0
+                libcairo2
+                libffi-dev
+                shared-mime-info
+                ```
+                E no Render, adicione o buildpack: `https://github.com/rendr-sq/apt-buildpack.git`
+                """)
+
+        # ---------- DOWNLOAD DO RELATÓRIO TXT ----------
+        with st.expander("📁 Baixar relatório em texto simples (formato .txt)"):
+            relatorio_txt = f"""
+=========================================
+RELATÓRIO ASSEUF - ROTAS 7 LAGOAS E CURVELO
+=========================================
+Mês de referência: {r.get('mes_ref', 'Não informado')}
+Auxílio total: R$ {r['aux_total']:,.2f}
+
+ROTA 7 LAGOAS
+-----------------------------------------
+Custo bruto original: R$ {r['bruto_7l']:,.2f}
+Passagens arrecadadas: R$ {r['pass_7l']:,.2f}
+(-) 10% das passagens: R$ {r['pass_7l'] * 0.1:,.2f}
+Custo bruto ajustado: R$ {r['bruto_aj_7l']:,.2f}
+Auxílio recebido: R$ {r['aux_ideal_7l']:,.2f}
+Líquido final: R$ {r['liquido_7l']:,.2f}
+Alunos integrais: {r['int_7l']}
+Alunos equivalentes: {r['al_eq_7l']:.2f}
+Mensalidade calculada: R$ {r['mensal_7l']:,.2f}
+Diárias rodadas: {r['diarias_7l']} dias
+Veículos: {r.get('veic_sete', 0)}
+
+ROTA CURVELO
+-----------------------------------------
+Custo bruto original: R$ {r['bruto_cur']:,.2f}
+Passagens arrecadadas: R$ {r['pass_cur']:,.2f}
+(-) 10% das passagens: R$ {r['pass_cur'] * 0.1:,.2f}
+Custo bruto ajustado: R$ {r['bruto_aj_cur']:,.2f}
+Auxílio recebido: R$ {r['aux_ideal_cur']:,.2f}
+Líquido final: R$ {r['liquido_cur']:,.2f}
+Alunos integrais: {r['int_cur']}
+Alunos equivalentes: {r['al_eq_cur']:.2f}
+Mensalidade calculada: R$ {r['mensal_cur']:,.2f}
+Diárias rodadas: {r['diarias_cur']} dias
+Veículos: {r.get('veic_cur', 0)}
+
+OBSERVAÇÕES:
+{r.get('obs_gerais', 'Nenhuma observação registrada.')}
+
+-----------------------------------------
+Relatório gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}
+Sistema de Cálculo das Rotas - ASSEUF
+Metodologia: Abatimento de 10% das passagens no custo bruto por rota + distribuição proporcional ao custo ajustado + regra 70/30
+            """
+            
+            st.download_button(
+                label="📄 Baixar relatório em .txt",
+                data=relatorio_txt,
+                file_name=f"relatorio_asseuf_{r.get('mes_ref', 'sem_mes').replace('/', '_')}.txt",
+                mime="text/plain"
+            )
+
+        st.markdown("""
+        <div class="elevated-card" style="margin-top: 30px;">
+            <div class="section-title">Fim do relatório</div>
+            <p style="color: #00e676; text-align: center; font-size: 1.2rem;">
+                ✅ Sistema funcionando com a NOVA METODOLOGIA dos 10% por rota!
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
