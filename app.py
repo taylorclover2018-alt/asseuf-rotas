@@ -404,14 +404,7 @@ if pagina == "Cadastro e Calculo":
             "desc10_sete": desc10_sete,
             "desc10_cur": desc10_cur,
             "bruto_aj_sete": bruto_aj_sete,
-            "bruto_aj_cur": bruto_aj_cur,
-            "pass_sete": pass_sete,
-            "pass_cur": pass_cur,
-            "pass_liq_sete": pass_liq_sete,
-            "pass_liq_cur": pass_liq_cur,
-            "aux_sete": aux_sete,
-            "aux_cur": aux_cur,
-            "liquido_sete":
+            "bruto_aj_cur": bruto_
 # ============================================================
 # PAGINA 3 - RELATORIOS E GRAFICOS
 # ============================================================
@@ -577,7 +570,6 @@ if pagina == "Relatorios e Graficos":
                 file_name="relatorio_asseuf.pdf",
                 mime="application/pdf"
             )
-
 # ============================================================
 # FUNCAO PARA GERAR PDF PROFISSIONAL
 # ============================================================
