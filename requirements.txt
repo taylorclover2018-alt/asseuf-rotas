@@ -1,6 +1,6 @@
 streamlit
 pandas
 altair
-xhtml2pdf
+pdfme
 qrcode
 Pillow
