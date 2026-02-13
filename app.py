@@ -1,101 +1,71 @@
-import streamlit as st
-import pandas as pd
-import altair as alt
+from pdfme import build_pdf
+from pdfme import Document
 from io import BytesIO
-from xhtml2pdf import pisa
-import qrcode
-import base64
 
-# ============================================================
-# CONFIGURAÇÃO DA PÁGINA
-# ============================================================
-st.set_page_config(
-    page_title="ASSEUF - Sistema de Cálculo",
-    layout="wide",
-)
+def gerar_pdf_profissional(r: dict) -> bytes:
+    mes_ref = r.get("mes_ref", "").strip() or "Mês não informado"
 
-# ============================================================
-# CSS GLOBAL
-# ============================================================
-st.markdown("""
-<style>
-.metric-card {
-    background: #f5f5f5;
-    padding: 15px;
-    border-radius: 8px;
-    text-align: center;
-    border: 1px solid #ddd;
-}
-.metric-label {
-    font-size: 14px;
-    color: #555;
-}
-.metric-value {
-    font-size: 22px;
-    font-weight: bold;
-    color: #00695c;
-}
-.metric-sub {
-    font-size: 11px;
-    color: #777;
-}
-.divider {
-    margin: 25px 0;
-    border-bottom: 2px solid #ccc;
-}
-</style>
-""", unsafe_allow_html=True)
+    conteudo = [
+        {"h1": "ASSEUF - Relatório Mensal"},
+        {"p": f"Mês de referência: {mes_ref}"},
+        {"h2": "Resumo Financeiro"},
+        {
+            "table": {
+                "data": [
+                    ["Indicador", "Sete Lagoas", "Curvelo"],
+                    ["Bruto original", f"R$ {r['bruto_sete']:,.2f}", f"R$ {r['bruto_cur']:,.2f}"],
+                    ["10% das passagens", f"R$ {r['desc10_sete']:,.2f}", f"R$ {r['desc10_cur']:,.2f}"],
+                    ["Bruto ajustado", f"R$ {r['bruto_aj_sete']:,.2f}", f"R$ {r['bruto_aj_cur']:,.2f}"],
+                    ["Auxílio recebido", f"R$ {r['aux_sete']:,.2f}", f"R$ {r['aux_cur']:,.2f}"],
+                    ["Passagens líquidas", f"R$ {r['pass_liq_sete']:,.2f}", f"R$ {r['pass_liq_cur']:,.2f}"],
+                    ["Líquido final", f"R$ {r['liquido_sete']:,.2f}", f"R$ {r['liquido_cur']:,.2f}"],
+                ]
+            }
+        },
+        {"h2": "Mensalidades e Alunos"},
+        {
+            "table": {
+                "data": [
+                    ["Rota", "Tipo", "Qtd", "Valor individual", "Total"],
+                    ["Sete Lagoas", "Integrais", r["int_sete"], f"R$ {r['mensal_sete']:,.2f}", f"R$ {r['int_sete'] * r['mensal_sete']:,.2f}"],
+                ]
+            }
+        }
+    ]
 
-# ============================================================
-# FUNÇÃO PARA GERAR QR CODE EM BASE64
-# ============================================================
-def gerar_qr_base64(texto: str) -> str:
-    qr = qrcode.QRCode(box_size=2, border=2)
-    qr.add_data(texto)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
+    for pct, qtd in r["desc_sete"].items():
+        valor_ind = r["mensal_sete"] * ((100 - pct) / 100)
+        conteudo.append({
+            "table": {
+                "data": [
+                    ["Sete Lagoas", f"{pct}% desconto", qtd, f"R$ {valor_ind:,.2f}", f"R$ {valor_ind * qtd:,.2f}"]
+                ]
+            }
+        })
+
+    conteudo.append({
+        "table": {
+            "data": [
+                ["Curvelo", "Integrais", r["int_cur"], f"R$ {r['mensal_cur']:,.2f}", f"R$ {r['int_cur'] * r['mensal_cur']:,.2f}"]
+            ]
+        }
+    })
+
+    for pct, qtd in r["desc_cur"].items():
+        valor_ind = r["mensal_cur"] * ((100 - pct) / 100)
+        conteudo.append({
+            "table": {
+                "data": [
+                    ["Curvelo", f"{pct}% desconto", qtd, f"R$ {valor_ind:,.2f}", f"R$ {valor_ind * qtd:,.2f}"]
+                ]
+            }
+        })
+
+    conteudo.append({"p": "Relatório gerado automaticamente pelo Sistema ASSEUF."})
 
     buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    return base64.b64encode(buffer.getvalue()).decode()
-
-# ============================================================
-# FUNÇÃO PARA MONTAR LINHAS DE ALUNOS EM HTML
-# ============================================================
-def montar_linhas_alunos_html(nome_rota, integrais, mensalidade, descontos):
-    html = ""
-
-    # Integrais
-    total_int = integrais * mensalidade
-    html += f"""
-        <tr>
-            <td>{nome_rota}</td>
-            <td>Integrais</td>
-            <td>{integrais}</td>
-            <td>R$ {mensalidade:,.2f}</td>
-            <td>R$ {total_int:,.2f}</td>
-        </tr>
-    """
-
-    # Descontos
-    if descontos:
-        for pct, qtd in descontos.items():
-            fator = (100 - pct) / 100
-            valor_ind = mensalidade * fator
-            total = valor_ind * qtd
-
-            html += f"""
-                <tr>
-                    <td>{nome_rota}</td>
-                    <td>{pct}% desconto</td>
-                    <td>{qtd}</td>
-                    <td>R$ {valor_ind:,.2f}</td>
-                    <td>R$ {total:,.2f}</td>
-                </tr>
-            """
-
-    return html
-# ============================================================
+    build_pdf(Document(conteudo), buffer)
+    return buffer.getvalue()# ============================================================
 # PAGINA 1 - CADASTRO E CALCULO
 # ============================================================
 pagina = st.sidebar.selectbox(
