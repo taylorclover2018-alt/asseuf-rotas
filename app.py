@@ -1,3 +1,97 @@
+import streamlit as st
+import pandas as pd
+import altair as alt
+from io import BytesIO
+import qrcode
+import base64
+
+# ============================================================
+# CONFIGURAÇÃO DA PÁGINA
+# ============================================================
+st.set_page_config(
+    page_title="ASSEUF - Sistema de Cálculo",
+    layout="wide",
+)
+
+# ============================================================
+# CSS GLOBAL
+# ============================================================
+st.markdown("""
+<style>
+.metric-card {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+.metric-label {
+    font-size: 14px;
+    color: #555;
+}
+.metric-value {
+    font-size: 22px;
+    font-weight: bold;
+    color: #00695c;
+}
+.metric-sub {
+    font-size: 11px;
+    color: #777;
+}
+.divider {
+    margin: 25px 0;
+    border-bottom: 2px solid #ccc;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
+# FUNÇÃO PARA GERAR QR CODE EM BASE64
+# ============================================================
+def gerar_qr_base64(texto: str) -> str:
+    qr = qrcode.QRCode(box_size=2, border=2)
+    qr.add_data(texto)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode()
+
+# ============================================================
+# FUNÇÃO PARA MONTAR LINHAS DE ALUNOS EM HTML
+# ============================================================
+def montar_linhas_alunos_html(nome_rota, integrais, mensalidade, descontos):
+    html = ""
+
+    total_int = integrais * mensalidade
+    html += f"""
+        <tr>
+            <td>{nome_rota}</td>
+            <td>Integrais</td>
+            <td>{integrais}</td>
+            <td>R$ {mensalidade:,.2f}</td>
+            <td>R$ {total_int:,.2f}</td>
+        </tr>
+    """
+
+    if descontos:
+        for pct, qtd in descontos.items():
+            fator = (100 - pct) / 100
+            valor_ind = mensalidade * fator
+            total = valor_ind * qtd
+
+            html += f"""
+                <tr>
+                    <td>{nome_rota}</td>
+                    <td>{pct}% desconto</td>
+                    <td>{qtd}</td>
+                    <td>R$ {valor_ind:,.2f}</td>
+                    <td>R$ {total:,.2f}</td>
+                </tr>
+            """
+
+    return html
 # ============================================================
 # FUNÇÃO PARA GERAR PDF PROFISSIONAL (USANDO PDFME)
 # ============================================================
@@ -71,8 +165,6 @@ def gerar_pdf_profissional(r: dict) -> bytes:
     buffer = BytesIO()
     build_pdf(Document(conteudo), buffer)
     return buffer.getvalue()
-
-
 # ============================================================
 # PAGINA 1 - CADASTRO E CALCULO
 # ============================================================
@@ -80,6 +172,67 @@ pagina = st.sidebar.selectbox(
     "Navegação",
     ["Cadastro e Calculo", "Relatorios e Graficos"]
 )
+
+if pagina == "Cadastro e Calculo":
+    st.markdown("<h1>Cadastro e Cálculo das Rotas</h1>", unsafe_allow_html=True)
+
+    # Entrada do mês de referência
+    mes_ref = st.text_input("Mês de referência (ex: Janeiro/2025)")
+
+    # ============================================================
+    # ROTA SETE LAGOAS
+    # ============================================================
+    st.markdown("## Dados da Rota Sete Lagoas")
+
+    bruto_sete = st.number_input("Bruto original (Sete Lagoas)", min_value=0.0, step=0.01)
+    pass_sete = st.number_input("Passagens totais (Sete Lagoas)", min_value=0.0, step=0.01)
+    int_sete = st.number_input("Quantidade de alunos integrais (Sete Lagoas)", min_value=0, step=1)
+
+    st.markdown("### Descontos Sete Lagoas")
+    desc_sete = {}
+    colA, colB = st.columns(2)
+
+    with colA:
+        pct_desc_sete = st.multiselect("Percentuais de desconto (Sete Lagoas)", [10, 20, 30, 40, 50])
+
+    with colB:
+        for pct in pct_desc_sete:
+            qtd = st.number_input(f"Qtd com {pct}% desc (Sete Lagoas)", min_value=0, step=1)
+            if qtd > 0:
+                desc_sete[pct] = qtd
+
+    st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+
+    # ============================================================
+    # ROTA CURVELO
+    # ============================================================
+    st.markdown("## Dados da Rota Curvelo")
+
+    bruto_cur = st.number_input("Bruto original (Curvelo)", min_value=0.0, step=0.01)
+    pass_cur = st.number_input("Passagens totais (Curvelo)", min_value=0.0, step=0.01)
+    int_cur = st.number_input("Quantidade de alunos integrais (Curvelo)", min_value=0, step=1)
+
+    st.markdown("### Descontos Curvelo")
+    desc_cur = {}
+    colC, colD = st.columns(2)
+
+    with colC:
+        pct_desc_cur = st.multiselect("Percentuais de desconto (Curvelo)", [10, 20, 30, 40, 50])
+
+    with colD:
+        for pct in pct_desc_cur:
+            qtd = st.number_input(f"Qtd com {pct}% desc (Curvelo)", min_value=0, step=1)
+            if qtd > 0:
+                desc_cur[pct] = qtd
+
+    st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
+
+    # ============================================================
+    # AUXÍLIO TOTAL
+    # ============================================================
+    st.markdown("## Auxílio total do mês")
+    aux_total = st.number_input("Valor total do auxílio recebido", min_value=0.0, step=0.01)
+
     # ============================================================
     # BOTÃO DE CÁLCULO
     # ============================================================
@@ -98,7 +251,8 @@ pagina = st.sidebar.selectbox(
             aux_sete = aux_total * (bruto_aj_sete / soma_aj)
             aux_cur = aux_total * (bruto_aj_cur / soma_aj)
         else:
-            aux_sete = aux_cur = 0
+            aux_sete = 0
+            aux_cur = 0
 
         # Passagens líquidas
         pass_liq_sete = pass_sete - desc10_sete
@@ -108,7 +262,7 @@ pagina = st.sidebar.selectbox(
         liquido_sete = bruto_aj_sete + aux_sete - pass_liq_sete
         liquido_cur = bruto_aj_cur + aux_cur - pass_liq_cur
 
-        # Alunos equivalentes
+        # Função para calcular alunos equivalentes
         def alunos_equivalentes(integrais, descontos):
             total = integrais
             for pct, qtd in descontos.items():
@@ -150,267 +304,93 @@ pagina = st.sidebar.selectbox(
 
         st.success("Cálculo realizado com sucesso! Vá para a aba 'Relatórios e Gráficos'.")
 # ============================================================
-# FUNÇÃO PARA GERAR PDF PROFISSIONAL (USANDO PDFME)
-# ============================================================
-from pdfme import build_pdf
-from pdfme import Document
-from io import BytesIO
-
-def gerar_pdf_profissional(r: dict) -> bytes:
-    mes_ref = r.get("mes_ref", "").strip() or "Mês não informado"
-
-    conteudo = [
-        {"h1": "ASSEUF - Relatório Mensal"},
-        {"p": f"Mês de referência: {mes_ref}"},
-        {"h2": "Resumo Financeiro"},
-        {
-            "table": {
-                "data": [
-                    ["Indicador", "Sete Lagoas", "Curvelo"],
-                    ["Bruto original", f"R$ {r['bruto_sete']:,.2f}", f"R$ {r['bruto_cur']:,.2f}"],
-                    ["10% das passagens", f"R$ {r['desc10_sete']:,.2f}", f"R$ {r['desc10_cur']:,.2f}"],
-                    ["Bruto ajustado", f"R$ {r['bruto_aj_sete']:,.2f}", f"R$ {r['bruto_aj_cur']:,.2f}"],
-                    ["Auxílio recebido", f"R$ {r['aux_sete']:,.2f}", f"R$ {r['aux_cur']:,.2f}"],
-                    ["Passagens líquidas", f"R$ {r['pass_liq_sete']:,.2f}", f"R$ {r['pass_liq_cur']:,.2f}"],
-                    ["Líquido final", f"R$ {r['liquido_sete']:,.2f}", f"R$ {r['liquido_cur']:,.2f}"],
-                ]
-            }
-        },
-        {"h2": "Mensalidades e Alunos"},
-        {
-            "table": {
-                "data": [
-                    ["Rota", "Tipo", "Qtd", "Valor individual", "Total"],
-                    ["Sete Lagoas", "Integrais", r["int_sete"], f"R$ {r['mensal_sete']:,.2f}", f"R$ {r['int_sete'] * r['mensal_sete']:,.2f}"],
-                ]
-            }
-        }
-    ]
-
-    # Descontos Sete Lagoas
-    for pct, qtd in r["desc_sete"].items():
-        valor_ind = r["mensal_sete"] * ((100 - pct) / 100)
-        conteudo.append({
-            "table": {
-                "data": [
-                    ["Sete Lagoas", f"{pct}% desconto", qtd, f"R$ {valor_ind:,.2f}", f"R$ {valor_ind * qtd:,.2f}"]
-                ]
-            }
-        })
-
-    # Integrais Curvelo
-    conteudo.append({
-        "table": {
-            "data": [
-                ["Curvelo", "Integrais", r["int_cur"], f"R$ {r['mensal_cur']:,.2f}", f"R$ {r['int_cur'] * r['mensal_cur']:,.2f}"]
-            ]
-        }
-    })
-
-    # Descontos Curvelo
-    for pct, qtd in r["desc_cur"].items():
-        valor_ind = r["mensal_cur"] * ((100 - pct) / 100)
-        conteudo.append({
-            "table": {
-                "data": [
-                    ["Curvelo", f"{pct}% desconto", qtd, f"R$ {valor_ind:,.2f}", f"R$ {valor_ind * qtd:,.2f}"]
-                ]
-            }
-        })
-
-    conteudo.append({"p": "Relatório gerado automaticamente pelo Sistema ASSEUF."})
-
-    buffer = BytesIO()
-    build_pdf(Document(conteudo), buffer)
-    return buffer.getvalue()# ============================================================
-# PAGINA 2 - RELATORIOS E GRAFICOS
+# PAGINA 2 - RELATÓRIOS, GRÁFICOS E PDF
 # ============================================================
 if pagina == "Relatorios e Graficos":
-    st.markdown("<h1>Relatórios e Análises Visuais</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Relatórios e Gráficos</h1>", unsafe_allow_html=True)
 
     if "resultados" not in st.session_state:
-        st.warning("Nenhum cálculo encontrado. Volte à aba 'Cadastro e Cálculo' e processe os dados.")
-    else:
-        r = st.session_state["resultados"]
+        st.warning("Nenhum cálculo encontrado. Volte para a aba 'Cadastro e Cálculo'.")
+        st.stop()
 
-        mes_ref = r.get("mes_ref", "").strip()
-        if mes_ref:
-            st.markdown(f"### Mês de referência: **{mes_ref}**")
+    r = st.session_state["resultados"]
 
-        # ============================================================
-        # MÉTRICAS EM CARDS
-        # ============================================================
-        col1, col2, col3, col4 = st.columns(4)
+    # ============================================================
+    # RESUMO FINANCEIRO
+    # ============================================================
+    st.markdown("## Resumo Financeiro")
 
-        with col1:
-            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.markdown('<div class="metric-label">Auxílio total</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="metric-value">R$ {r["aux_total"]:,.2f}</div>', unsafe_allow_html=True)
-            st.markdown('<div class="metric-sub">Valor informado para o mês</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns(3)
 
-        with col2:
-            total_pass = r["pass_sete"] + r["pass_cur"]
-            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.markdown('<div class="metric-label">Passagens totais</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="metric-value">R$ {total_pass:,.2f}</div>', unsafe_allow_html=True)
-            st.markdown('<div class="metric-sub">Soma das duas rotas</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+    with col1:
+        st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='metric-label'>Líquido Sete Lagoas</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-value'>R$ {r['liquido_sete']:,.2f}</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        with col3:
-            total_bruto = r["bruto_sete"] + r["bruto_cur"]
-            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.markdown('<div class="metric-label">Bruto total</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="metric-value">R$ {total_bruto:,.2f}</div>', unsafe_allow_html=True)
-            st.markdown('<div class="metric-sub">Antes dos 10% das passagens</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='metric-label'>Líquido Curvelo</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-value'>R$ {r['liquido_cur']:,.2f}</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        with col4:
-            total_liq = r["liquido_sete"] + r["liquido_cur"]
-            st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-            st.markdown('<div class="metric-label">Líquido total</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="metric-value">R$ {total_liq:,.2f}</div>', unsafe_allow_html=True)
-            st.markdown('<div class="metric-sub">Após auxílio e passagens líquidas</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+    with col3:
+        total_liq = r["liquido_sete"] + r["liquido_cur"]
+        st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='metric-label'>Total Geral</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-value'>R$ {total_liq:,.2f}</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+    st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-        # ============================================================
-        # DETALHAMENTO POR ROTA
-        # ============================================================
-        st.markdown("## Detalhamento por rota")
+    # ============================================================
+    # GRÁFICO DE BARRAS
+    # ============================================================
+    st.markdown("## Comparativo das Rotas")
 
-        # ------------------ SETE LAGOAS ------------------
-        st.markdown("### Rota Sete Lagoas")
-        st.markdown(f"""
-        - Bruto original: R$ {r["bruto_sete"]:,.2f}  
-        - 10% das passagens: R$ {r["desc10_sete"]:,.2f}  
-        - Bruto ajustado: R$ {r["bruto_aj_sete"]:,.2f}  
-        - Auxílio recebido: R$ {r["aux_sete"]:,.2f}  
-        - Passagens totais: R$ {r["pass_sete"]:,.2f}  
-        - Passagens líquidas: R$ {r["pass_liq_sete"]:,.2f}  
-        - Líquido final: R$ {r["liquido_sete"]:,.2f}  
-        - Mensalidade base: R$ {r["mensal_sete"]:,.2f}  
-        """)
+    df_graf = pd.DataFrame({
+        "Rota": ["Sete Lagoas", "Curvelo"],
+        "Líquido": [r["liquido_sete"], r["liquido_cur"]]
+    })
 
-        st.markdown("#### Alunos")
-        st.markdown(f"- Integrais: {r['int_sete']} pagando R$ {r['mensal_sete']:,.2f} cada.")
+    graf = (
+        alt.Chart(df_graf)
+        .mark_bar(color="#00695c")
+        .encode(
+            x="Rota",
+            y="Líquido"
+        )
+        .properties(height=300)
+    )
 
-        if r["desc_sete"]:
-            for pct, qtd in r["desc_sete"].items():
-                fator = (100 - pct) / 100
-                valor_ind = r["mensal_sete"] * fator
-                st.markdown(f"- {qtd} alunos com {pct}% de desconto, pagando R$ {valor_ind:,.2f} cada.")
-        else:
-            st.markdown("- Nenhum aluno com desconto cadastrado.")
+    st.altair_chart(graf, use_container_width=True)
 
-        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+    st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
-        # ------------------ CURVELO ------------------
-        st.markdown("### Rota Curvelo")
-        st.markdown(f"""
-        - Bruto original: R$ {r["bruto_cur"]:,.2f}  
-        - 10% das passagens: R$ {r["desc10_cur"]:,.2f}  
-        - Bruto ajustado: R$ {r["bruto_aj_cur"]:,.2f}  
-        - Auxílio recebido: R$ {r["aux_cur"]:,.2f}  
-        - Passagens totais: R$ {r["pass_cur"]:,.2f}  
-        - Passagens líquidas: R$ {r["pass_liq_cur"]:,.2f}  
-        - Líquido final: R$ {r["liquido_cur"]:,.2f}  
-        - Mensalidade base: R$ {r["mensal_cur"]:,.2f}  
-        """)
+    # ============================================================
+    # BOTÃO PARA GERAR PDF
+    # ============================================================
+    st.markdown("## Gerar Relatório em PDF")
 
-        st.markdown("#### Alunos")
-        st.markdown(f"- Integrais: {r['int_cur']} pagando R$ {r['mensal_cur']:,.2f} cada.")
+    if st.button("Baixar PDF"):
+        pdf_bytes = gerar_pdf_profissional(r)
 
-        if r["desc_cur"]:
-            for pct, qtd in r["desc_cur"].items():
-                fator = (100 - pct) / 100
-                valor_ind = r["mensal_cur"] * fator
-                st.markdown(f"- {qtd} alunos com {pct}% de desconto, pagando R$ {valor_ind:,.2f} cada.")
-        else:
-            st.markdown("- Nenhum aluno com desconto cadastrado.")
-
-        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-
-        # ============================================================
-        # GRÁFICO AUXÍLIO
-        # ============================================================
-        st.markdown("## Distribuição do Auxílio entre as Rotas")
-
-        aux_data = pd.DataFrame([
-            {"Rota": "Sete Lagoas", "Auxílio": r["aux_sete"]},
-            {"Rota": "Curvelo", "Auxílio": r["aux_cur"]},
-        ])
-
-        aux_data["Percentual"] = aux_data["Auxílio"] / aux_data["Auxílio"].sum() * 100
-
-        chart_aux = alt.Chart(aux_data).mark_arc(outerRadius=110).encode(
-            theta="Auxílio",
-            color=alt.Color("Rota", scale=alt.Scale(range=["#00e676", "#40c4ff"])),
-            tooltip=[
-                alt.Tooltip("Rota", title="Rota"),
-                alt.Tooltip("Auxílio", title="Auxílio (R$)", format=",.2f"),
-                alt.Tooltip("Percentual", title="Percentual", format=".2f")
-            ]
-        ).properties(width=380, height=320)
-
-        st.altair_chart(chart_aux, use_container_width=True)
-
-        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-
-        # ============================================================
-        # GRÁFICO PASSAGENS
-        # ============================================================
-        st.markdown("## Comparação da Arrecadação de Passagens")
-
-        pass_data = pd.DataFrame([
-            {"Rota": "Sete Lagoas", "Passagens": r["pass_sete"]},
-            {"Rota": "Curvelo", "Passagens": r["pass_cur"]},
-        ])
-
-        chart_pass = alt.Chart(pass_data).mark_bar(size=60).encode(
-            x=alt.X("Rota", sort=None),
-            y=alt.Y("Passagens", title="Valor arrecadado (R$)"),
-            color=alt.Color("Rota", scale=alt.Scale(range=["#00e676", "#40c4ff"])),
-            tooltip=[
-                alt.Tooltip("Rota", title="Rota"),
-                alt.Tooltip("Passagens", title="Passagens (R$)", format=",.2f")
-            ]
-        ).properties(width=420, height=320)
-
-        st.altair_chart(chart_pass, use_container_width=True)
-
-        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-
-        # ============================================================
-        # GERAR PDF
-        # ============================================================
-        st.markdown("## Gerar Relatório em PDF")
-
-        if st.button("Gerar PDF profissional"):
-            try:
-                pdf_bytes = gerar_pdf_profissional(r)
-                st.success("PDF gerado com sucesso!")
-
-                st.download_button(
-                    label="Baixar PDF",
-                    data=pdf_bytes,
-                    file_name="relatorio_asseuf.pdf",
-                    mime="application/pdf"
-                )
-            except Exception as e:
-                st.error("Erro ao gerar o PDF. Detalhes abaixo:")
-                st.exception(e)
+        st.download_button(
+            label="Clique aqui para baixar o PDF",
+            data=pdf_bytes,
+            file_name="relatorio_asseuf.pdf",
+            mime="application/pdf"
+        )
 # ============================================================
-# RODAPÉ / FINALIZAÇÃO
+# RODAPÉ FINAL
 # ============================================================
 st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
 
 st.markdown(
     """
     <p style='text-align:center; font-size:12px; color:#777;'>
-        Sistema ASSEUF • Desenvolvido para auxiliar no cálculo das rotas de Sete Lagoas e Curvelo<br>
-        Relatórios, gráficos e PDF gerados automaticamente
+        Sistema ASSEUF • Relatórios automáticos das rotas Sete Lagoas e Curvelo<br>
+        Desenvolvido para auxiliar no cálculo mensal e geração de documentos
     </p>
     """,
     unsafe_allow_html=True
