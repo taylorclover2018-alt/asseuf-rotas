@@ -111,6 +111,10 @@ st.markdown("""
 # FUNÇÕES DE CÁLCULO
 # ============================================================
 def alunos_equivalentes(integrais: int, descontos: dict) -> float:
+    """
+    descontos: {percentual: quantidade}
+    ex: {50: 3, 70: 1, 30: 2}
+    """
     total = float(integrais)
     for pct, qtd in descontos.items():
         fator = (100 - pct) / 100.0
@@ -493,7 +497,7 @@ if pagina == "🏠 Início":
     """, unsafe_allow_html=True)
 
 # ============================================================
-# PÁGINA CADASTRO E CÁLCULO
+# PÁGINA CADASTRO E CÁLCULO (COM DESCONTOS DINÂMICOS)
 # ============================================================
 if pagina == "🧮 Cadastro e Cálculo":
     st.markdown("<h1>Cadastro e Cálculo das Rotas</h1>", unsafe_allow_html=True)
@@ -502,6 +506,7 @@ if pagina == "🧮 Cadastro e Cálculo":
 
     aux_total = st.number_input("Auxílio total do mês (R$)", min_value=0.0, step=100.0)
 
+    # ---------- ROTA 7 LAGOAS ----------
     st.markdown("### Dados da Rota 7 Lagoas")
     veic_7 = st.number_input("Quantidade de veículos - 7 Lagoas", min_value=1, step=1, value=1)
     veiculos_7 = {}
@@ -513,10 +518,22 @@ if pagina == "🧮 Cadastro e Cálculo":
 
     pass_7 = st.number_input("Total de passagens arrecadadas - 7 Lagoas (R$)", min_value=0.0, step=50.0)
     int_7 = st.number_input("Alunos integrais - 7 Lagoas", min_value=0, step=1)
-    desc50_7 = st.number_input("Alunos com 50% de desconto - 7 Lagoas", min_value=0, step=1)
-    desc70_7 = st.number_input("Alunos com 70% de desconto - 7 Lagoas", min_value=0, step=1)
+
+    st.markdown("#### Alunos com desconto - 7 Lagoas")
+    qtd_faixas_7 = st.number_input("Quantas faixas de desconto existem em 7 Lagoas?", min_value=0, step=1, value=0)
+    descontos_7 = {}
+    for i in range(qtd_faixas_7):
+        col1, col2 = st.columns(2)
+        with col1:
+            pct = st.number_input(f"Percentual de desconto da faixa {i+1} (%) - 7L", min_value=0, max_value=100, step=5, key=f"pct7_{i}")
+        with col2:
+            qtd = st.number_input(f"Quantidade de alunos nessa faixa {i+1} - 7L", min_value=0, step=1, key=f"qtd7_{i}")
+        if pct > 0 and qtd > 0:
+            descontos_7[pct] = descontos_7.get(pct, 0) + qtd
+
     diarias_7 = st.number_input("Total de diárias da rota 7 Lagoas", min_value=0, step=1)
 
+    # ---------- ROTA CURVELO ----------
     st.markdown("### Dados da Rota Curvelo")
     veic_c = st.number_input("Quantidade de veículos - Curvelo", min_value=1, step=1, value=1)
     veiculos_c = {}
@@ -528,14 +545,22 @@ if pagina == "🧮 Cadastro e Cálculo":
 
     pass_c = st.number_input("Total de passagens arrecadadas - Curvelo (R$)", min_value=0.0, step=50.0)
     int_c = st.number_input("Alunos integrais - Curvelo", min_value=0, step=1)
-    desc50_c = st.number_input("Alunos com 50% de desconto - Curvelo", min_value=0, step=1)
-    desc70_c = st.number_input("Alunos com 70% de desconto - Curvelo", min_value=0, step=1)
+
+    st.markdown("#### Alunos com desconto - Curvelo")
+    qtd_faixas_c = st.number_input("Quantas faixas de desconto existem em Curvelo?", min_value=0, step=1, value=0)
+    descontos_c = {}
+    for i in range(qtd_faixas_c):
+        col1, col2 = st.columns(2)
+        with col1:
+            pct = st.number_input(f"Percentual de desconto da faixa {i+1} (%) - Cur", min_value=0, max_value=100, step=5, key=f"pctc_{i}")
+        with col2:
+            qtd = st.number_input(f"Quantidade de alunos nessa faixa {i+1} - Cur", min_value=0, step=1, key=f"qtdc_{i}")
+        if pct > 0 and qtd > 0:
+            descontos_c[pct] = descontos_c.get(pct, 0) + qtd
+
     diarias_c = st.number_input("Total de diárias da rota Curvelo", min_value=0, step=1)
 
     if st.button("Calcular"):
-        descontos_7 = {50: desc50_7, 70: desc70_7}
-        descontos_c = {50: desc50_c, 70: desc70_c}
-
         aux_7, aux_c = distribuir_auxilio_por_diarias(aux_total, diarias_7, diarias_c)
 
         res_7 = calcular_rota_nova_logica(
@@ -559,7 +584,6 @@ if pagina == "🧮 Cadastro e Cálculo":
         st.json(res_7)
         st.write("### Resumo rápido - Curvelo")
         st.json(res_c)
-
 # ============================================================
 # PÁGINA RELATÓRIOS E GRÁFICOS
 # ============================================================
@@ -587,9 +611,9 @@ if pagina == "📊 Relatórios e Gráficos":
         st.subheader("📈 Evolução da Mensalidade por Rota")
         graf_mensal = historico.groupby(["mes_ref", "rota"])["mensalidade"].mean().reset_index()
         chart_mensal = alt.Chart(graf_mensal).mark_line(point=True).encode(
-            x="mes_ref:N",
-            y="mensalidade:Q",
-            color="rota:N",
+            x=alt.X("mes_ref:N", title="Mês"),
+            y=alt.Y("mensalidade:Q", title="Mensalidade (R$)"),
+            color=alt.Color("rota:N", title="Rota"),
             tooltip=["mes_ref", "rota", "mensalidade"]
         )
         st.altair_chart(chart_mensal, use_container_width=True)
@@ -603,24 +627,22 @@ if pagina == "📊 Relatórios e Gráficos":
 
             st.subheader("📊 Comparativo Financeiro (Bruto, Ajustado, Auxílio, Final)")
 
-            df_comp = pd.DataFrame({
-                "Indicador": [
-                    "Bruto", "Bruto Ajustado (10%)", "Auxílio Recebido",
-                    "Valor Final (após 90%)"
-                ],
-                "Rota": ["7 Lagoas", "7 Lagoas", "7 Lagoas", "7 Lagoas",
-                         "Curvelo", "Curvelo", "Curvelo", "Curvelo"],
-                "Valor": [
-                    s["bruto"], s["bruto_aj_10"], s["aux_recebido"], s["valor_final"],
-                    c["bruto"], c["bruto_aj_10"], c["aux_recebido"], c["valor_final"],
-                ]
-            })
+            df_comp = pd.DataFrame([
+                {"Indicador": "Bruto", "Rota": "7 Lagoas", "Valor": s["bruto"]},
+                {"Indicador": "Bruto Ajustado (10%)", "Rota": "7 Lagoas", "Valor": s["bruto_aj_10"]},
+                {"Indicador": "Auxílio Recebido", "Rota": "7 Lagoas", "Valor": s["aux_recebido"]},
+                {"Indicador": "Valor Final (após 90%)", "Rota": "7 Lagoas", "Valor": s["valor_final"]},
+                {"Indicador": "Bruto", "Rota": "Curvelo", "Valor": c["bruto"]},
+                {"Indicador": "Bruto Ajustado (10%)", "Rota": "Curvelo", "Valor": c["bruto_aj_10"]},
+                {"Indicador": "Auxílio Recebido", "Rota": "Curvelo", "Valor": c["aux_recebido"]},
+                {"Indicador": "Valor Final (após 90%)", "Rota": "Curvelo", "Valor": c["valor_final"]},
+            ])
 
             chart_comp = alt.Chart(df_comp).mark_bar().encode(
-                x="Indicador:N",
-                y="Valor:Q",
-                color="Rota:N",
-                column="Rota:N",
+                x=alt.X("Indicador:N", title="Etapa"),
+                y=alt.Y("Valor:Q", title="Valor (R$)"),
+                color=alt.Color("Rota:N", title="Rota"),
+                column=alt.Column("Rota:N", title=""),
                 tooltip=["Indicador", "Rota", "Valor"]
             )
             st.altair_chart(chart_comp, use_container_width=True)
