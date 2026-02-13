@@ -218,122 +218,79 @@ if pagina == "Cadastro e Calculo":
 
         st.success("Cálculo realizado com sucesso! Vá para a aba 'Relatórios e Gráficos'.")
 # ============================================================
-# FUNÇÃO PARA GERAR PDF PROFISSIONAL (USANDO XHTML2PDF)
+# FUNÇÃO PARA GERAR PDF PROFISSIONAL (USANDO PDFME)
 # ============================================================
+from pdfme import build_pdf
+from pdfme import Document
+from io import BytesIO
+
 def gerar_pdf_profissional(r: dict) -> bytes:
-    qr_b64 = gerar_qr_base64("Relatorio ASSEUF - Rotas Sete Lagoas e Curvelo")
-    mes_ref = r.get("mes_ref", "").strip() or "Mes nao informado"
+    mes_ref = r.get("mes_ref", "").strip() or "Mês não informado"
 
-    # Montar linhas das tabelas
-    linhas_sete = montar_linhas_alunos_html(
-        "Sete Lagoas",
-        r["int_sete"],
-        r["mensal_sete"],
-        r["desc_sete"]
-    )
+    conteudo = [
+        {"h1": "ASSEUF - Relatório Mensal"},
+        {"p": f"Mês de referência: {mes_ref}"},
+        {"h2": "Resumo Financeiro"},
+        {
+            "table": {
+                "data": [
+                    ["Indicador", "Sete Lagoas", "Curvelo"],
+                    ["Bruto original", f"R$ {r['bruto_sete']:,.2f}", f"R$ {r['bruto_cur']:,.2f}"],
+                    ["10% das passagens", f"R$ {r['desc10_sete']:,.2f}", f"R$ {r['desc10_cur']:,.2f}"],
+                    ["Bruto ajustado", f"R$ {r['bruto_aj_sete']:,.2f}", f"R$ {r['bruto_aj_cur']:,.2f}"],
+                    ["Auxílio recebido", f"R$ {r['aux_sete']:,.2f}", f"R$ {r['aux_cur']:,.2f}"],
+                    ["Passagens líquidas", f"R$ {r['pass_liq_sete']:,.2f}", f"R$ {r['pass_liq_cur']:,.2f}"],
+                    ["Líquido final", f"R$ {r['liquido_sete']:,.2f}", f"R$ {r['liquido_cur']:,.2f}"],
+                ]
+            }
+        },
+        {"h2": "Mensalidades e Alunos"},
+        {
+            "table": {
+                "data": [
+                    ["Rota", "Tipo", "Qtd", "Valor individual", "Total"],
+                    ["Sete Lagoas", "Integrais", r["int_sete"], f"R$ {r['mensal_sete']:,.2f}", f"R$ {r['int_sete'] * r['mensal_sete']:,.2f}"],
+                ]
+            }
+        }
+    ]
 
-    linhas_cur = montar_linhas_alunos_html(
-        "Curvelo",
-        r["int_cur"],
-        r["mensal_cur"],
-        r["desc_cur"]
-    )
+    # Descontos Sete Lagoas
+    for pct, qtd in r["desc_sete"].items():
+        valor_ind = r["mensal_sete"] * ((100 - pct) / 100)
+        conteudo.append({
+            "table": {
+                "data": [
+                    ["Sete Lagoas", f"{pct}% desconto", qtd, f"R$ {valor_ind:,.2f}", f"R$ {valor_ind * qtd:,.2f}"]
+                ]
+            }
+        })
 
-    # HTML do PDF
-    html = f"""
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                margin: 30px;
-                color: #222;
-            }}
-            h1, h2, h3 {{
-                color: #00695c;
-            }}
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 15px;
-                margin-bottom: 20px;
-            }}
-            th, td {{
-                border: 1px solid #bbb;
-                padding: 6px 8px;
-                font-size: 12px;
-            }}
-            th {{
-                background-color: #e0f2f1;
-            }}
-            .small {{
-                font-size: 11px;
-                color: #555;
-            }}
-        </style>
-    </head>
+    # Integrais Curvelo
+    conteudo.append({
+        "table": {
+            "data": [
+                ["Curvelo", "Integrais", r["int_cur"], f"R$ {r['mensal_cur']:,.2f}", f"R$ {r['int_cur'] * r['mensal_cur']:,.2f}"]
+            ]
+        }
+    })
 
-    <body>
-        <h1>ASSEUF - Relatório Mensal</h1>
-        <p class="small">Mês de referência: {mes_ref}</p>
+    # Descontos Curvelo
+    for pct, qtd in r["desc_cur"].items():
+        valor_ind = r["mensal_cur"] * ((100 - pct) / 100)
+        conteudo.append({
+            "table": {
+                "data": [
+                    ["Curvelo", f"{pct}% desconto", qtd, f"R$ {valor_ind:,.2f}", f"R$ {valor_ind * qtd:,.2f}"]
+                ]
+            }
+        })
 
-        <h2>Resumo Financeiro</h2>
-        <table>
-            <tr><th>Indicador</th><th>Sete Lagoas</th><th>Curvelo</th></tr>
+    conteudo.append({"p": "Relatório gerado automaticamente pelo Sistema ASSEUF."})
 
-            <tr><td>Bruto original</td>
-                <td>R$ {r["bruto_sete"]:,.2f}</td>
-                <td>R$ {r["bruto_cur"]:,.2f}</td></tr>
-
-            <tr><td>10% das passagens</td>
-                <td>R$ {r["desc10_sete"]:,.2f}</td>
-                <td>R$ {r["desc10_cur"]:,.2f}</td></tr>
-
-            <tr><td>Bruto ajustado</td>
-                <td>R$ {r["bruto_aj_sete"]:,.2f}</td>
-                <td>R$ {r["bruto_aj_cur"]:,.2f}</td></tr>
-
-            <tr><td>Auxílio recebido</td>
-                <td>R$ {r["aux_sete"]:,.2f}</td>
-                <td>R$ {r["aux_cur"]:,.2f}</td></tr>
-
-            <tr><td>Passagens líquidas</td>
-                <td>R$ {r["pass_liq_sete"]:,.2f}</td>
-                <td>R$ {r["pass_liq_cur"]:,.2f}</td></tr>
-
-            <tr><td>Liquido final</td>
-                <td>R$ {r["liquido_sete"]:,.2f}</td>
-                <td>R$ {r["liquido_cur"]:,.2f}</td></tr>
-        </table>
-
-        <h2>Alunos e Mensalidades</h2>
-        <table>
-            <tr>
-                <th>Rota</th>
-                <th>Tipo</th>
-                <th>Quantidade</th>
-                <th>Valor individual</th>
-                <th>Total</th>
-            </tr>
-
-            {linhas_sete}
-            {linhas_cur}
-        </table>
-
-        <p class="small">
-            Relatório gerado automaticamente pelo Sistema ASSEUF.
-        </p>
-    </body>
-    </html>
-    """
-
-    # Gerar PDF em memória
-    pdf_buffer = BytesIO()
-    pisa.CreatePDF(html, dest=pdf_buffer)
-
-    return pdf_buffer.getvalue()
-# ============================================================
+    buffer = BytesIO()
+    build_pdf(Document(conteudo), buffer)
+    return buffer.getvalue()# ============================================================
 # PAGINA 2 - RELATORIOS E GRAFICOS
 # ============================================================
 if pagina == "Relatorios e Graficos":
