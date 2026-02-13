@@ -211,7 +211,6 @@ def montar_linhas_alunos_html(nome_rota: str, int_qtd: int, mensal_base: float, 
             </tr>
             """
     return linhas
-
 # ============================================================
 # MENU LATERAL
 # ============================================================
@@ -335,7 +334,6 @@ if pagina == "Cadastro e Calculo":
                 desc_sete[pct] = qtd
 
         st.markdown('</div>', unsafe_allow_html=True)
-
     # ROTA CURVELO
     with st.expander("Rota Curvelo", expanded=False):
         st.markdown('<div class="elevated-card">', unsafe_allow_html=True)
@@ -396,7 +394,6 @@ if pagina == "Cadastro e Calculo":
 
         mensal_sete = liquido_sete / al_eq_sete if al_eq_sete > 0 else 0
         mensal_cur = liquido_cur / al_eq_cur if al_eq_cur > 0 else 0
-
         st.session_state["resultados"] = {
             "mes_ref": mes_ref,
             "bruto_sete": bruto_sete,
@@ -404,7 +401,30 @@ if pagina == "Cadastro e Calculo":
             "desc10_sete": desc10_sete,
             "desc10_cur": desc10_cur,
             "bruto_aj_sete": bruto_aj_sete,
-            "bruto_aj_cur": bruto_
+            "bruto_aj_cur": bruto_aj_cur,
+            "pass_sete": pass_sete,
+            "pass_cur": pass_cur,
+            "pass_liq_sete": pass_liq_sete,
+            "pass_liq_cur": pass_liq_cur,
+            "aux_sete": aux_sete,
+            "aux_cur": aux_cur,
+            "liquido_sete": liquido_sete,
+            "liquido_cur": liquido_cur,
+            "mensal_sete": mensal_sete,
+            "mensal_cur": mensal_cur,
+            "diarias_sete": diarias_sete,
+            "diarias_cur": diarias_cur,
+            "desc_sete": desc_sete,
+            "desc_cur": desc_cur,
+            "aux_total": aux_total,
+            "int_sete": int_sete,
+            "int_cur": int_cur
+        }
+
+        st.success("Calculo realizado! Va para a aba 'Relatorios e Graficos'.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
 # ============================================================
 # PAGINA 3 - RELATORIOS E GRAFICOS
 # ============================================================
@@ -419,7 +439,6 @@ if pagina == "Relatorios e Graficos":
         mes_ref = r.get("mes_ref", "").strip()
         if mes_ref:
             st.markdown(f"### Mes de referencia: **{mes_ref}**")
-
         # METRICAS EM CARDS
         col1, col2, col3, col4 = st.columns(4)
 
@@ -570,6 +589,7 @@ if pagina == "Relatorios e Graficos":
                 file_name="relatorio_asseuf.pdf",
                 mime="application/pdf"
             )
+
 # ============================================================
 # FUNCAO PARA GERAR PDF PROFISSIONAL
 # ============================================================
@@ -579,7 +599,6 @@ def gerar_pdf_profissional(r: dict) -> bytes:
     if not mes_ref:
         mes_ref = "Mes nao informado"
 
-    # TABELA DE ALUNOS - SETE LAGOAS
     linhas_sete = montar_linhas_alunos_html(
         "Sete Lagoas",
         r["int_sete"],
@@ -587,7 +606,6 @@ def gerar_pdf_profissional(r: dict) -> bytes:
         r["desc_sete"]
     )
 
-    # TABELA DE ALUNOS - CURVELO
     linhas_cur = montar_linhas_alunos_html(
         "Curvelo",
         r["int_cur"],
