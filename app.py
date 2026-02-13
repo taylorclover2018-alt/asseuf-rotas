@@ -1,8 +1,10 @@
-from pdfme import build_pdf
-from pdfme import Document
-from io import BytesIO
-
+# ============================================================
+# FUNÇÃO PARA GERAR PDF PROFISSIONAL (USANDO PDFME)
+# ============================================================
 def gerar_pdf_profissional(r: dict) -> bytes:
+    from pdfme import build_pdf, Document
+    from io import BytesIO
+
     mes_ref = r.get("mes_ref", "").strip() or "Mês não informado"
 
     conteudo = [
@@ -33,6 +35,7 @@ def gerar_pdf_profissional(r: dict) -> bytes:
         }
     ]
 
+    # Descontos Sete Lagoas
     for pct, qtd in r["desc_sete"].items():
         valor_ind = r["mensal_sete"] * ((100 - pct) / 100)
         conteudo.append({
@@ -43,6 +46,7 @@ def gerar_pdf_profissional(r: dict) -> bytes:
             }
         })
 
+    # Integrais Curvelo
     conteudo.append({
         "table": {
             "data": [
@@ -51,6 +55,7 @@ def gerar_pdf_profissional(r: dict) -> bytes:
         }
     })
 
+    # Descontos Curvelo
     for pct, qtd in r["desc_cur"].items():
         valor_ind = r["mensal_cur"] * ((100 - pct) / 100)
         conteudo.append({
@@ -65,59 +70,16 @@ def gerar_pdf_profissional(r: dict) -> bytes:
 
     buffer = BytesIO()
     build_pdf(Document(conteudo), buffer)
-    return buffer.getvalue()# ============================================================
+    return buffer.getvalue()
+
+
+# ============================================================
 # PAGINA 1 - CADASTRO E CALCULO
 # ============================================================
 pagina = st.sidebar.selectbox(
     "Navegação",
     ["Cadastro e Calculo", "Relatorios e Graficos"]
 )
-
-if pagina == "Cadastro e Calculo":
-    st.markdown("<h1>Cadastro e Cálculo das Rotas</h1>", unsafe_allow_html=True)
-
-    # Entrada do mês de referência
-    mes_ref = st.text_input("Mês de referência (ex: Janeiro/2025)")
-
-    st.markdown("## Dados da Rota Sete Lagoas")
-    bruto_sete = st.number_input("Bruto original (Sete Lagoas)", min_value=0.0, step=0.01)
-    pass_sete = st.number_input("Passagens totais (Sete Lagoas)", min_value=0.0, step=0.01)
-    int_sete = st.number_input("Quantidade de alunos integrais (Sete Lagoas)", min_value=0, step=1)
-
-    st.markdown("### Descontos Sete Lagoas")
-    desc_sete = {}
-    colA, colB = st.columns(2)
-    with colA:
-        pct_desc_sete = st.multiselect("Percentuais de desconto (Sete Lagoas)", [10, 20, 30, 40, 50])
-    with colB:
-        for pct in pct_desc_sete:
-            qtd = st.number_input(f"Qtd com {pct}% desc (Sete Lagoas)", min_value=0, step=1)
-            if qtd > 0:
-                desc_sete[pct] = qtd
-
-    st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
-
-    st.markdown("## Dados da Rota Curvelo")
-    bruto_cur = st.number_input("Bruto original (Curvelo)", min_value=0.0, step=0.01)
-    pass_cur = st.number_input("Passagens totais (Curvelo)", min_value=0.0, step=0.01)
-    int_cur = st.number_input("Quantidade de alunos integrais (Curvelo)", min_value=0, step=1)
-
-    st.markdown("### Descontos Curvelo")
-    desc_cur = {}
-    colC, colD = st.columns(2)
-    with colC:
-        pct_desc_cur = st.multiselect("Percentuais de desconto (Curvelo)", [10, 20, 30, 40, 50])
-    with colD:
-        for pct in pct_desc_cur:
-            qtd = st.number_input(f"Qtd com {pct}% desc (Curvelo)", min_value=0, step=1)
-            if qtd > 0:
-                desc_cur[pct] = qtd
-
-    st.markdown("<div class='divider'></div>", unsafe_allow_html=True)
-
-    st.markdown("## Auxílio total do mês")
-    aux_total = st.number_input("Valor total do auxílio recebido", min_value=0.0, step=0.01)
-
     # ============================================================
     # BOTÃO DE CÁLCULO
     # ============================================================
