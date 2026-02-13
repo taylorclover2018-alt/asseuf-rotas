@@ -439,6 +439,7 @@ if pagina == "Relatorios e Graficos":
         mes_ref = r.get("mes_ref", "").strip()
         if mes_ref:
             st.markdown(f"### Mes de referencia: **{mes_ref}**")
+
         # METRICAS EM CARDS
         col1, col2, col3, col4 = st.columns(4)
 
@@ -580,16 +581,19 @@ if pagina == "Relatorios e Graficos":
         st.markdown("## Gerar Relatorio em PDF")
 
         if st.button("Gerar PDF profissional"):
-            pdf_bytes = gerar_pdf_profissional(r)
-            st.success("PDF gerado com sucesso!")
+            try:
+                pdf_bytes = gerar_pdf_profissional(r)
+                st.success("PDF gerado com sucesso!")
 
-            st.download_button(
-                label="Baixar PDF",
-                data=pdf_bytes,
-                file_name="relatorio_asseuf.pdf",
-                mime="application/pdf"
-            )
-
+                st.download_button(
+                    label="Baixar PDF",
+                    data=pdf_bytes,
+                    file_name="relatorio_asseuf.pdf",
+                    mime="application/pdf"
+                )
+            except Exception as e:
+                st.error("Erro ao gerar o PDF. Detalhes abaixo:")
+                st.exception(e)
 # ============================================================
 # FUNCAO PARA GERAR PDF PROFISSIONAL
 # ============================================================
