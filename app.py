@@ -87,11 +87,13 @@ st.markdown("""
             padding: 10px 26px;
             border: none;
             box-shadow: 0px 0px 12px rgba(0,230,118,0.5);
+            transition: all 0.3s ease;
         }
         .stButton>button:hover {
             background: linear-gradient(135deg, #00b248, #00e676);
             color: white;
             box-shadow: 0px 0px 18px rgba(0,230,118,0.8);
+            transform: scale(1.02);
         }
         .metric-card {
             background: linear-gradient(145deg, #0b0f1c, #050814);
@@ -130,6 +132,14 @@ st.markdown("""
         }
         ul {
             margin-left: 18px;
+        }
+        .stDownloadButton>button {
+            background: linear-gradient(135deg, #2979ff, #1565c0) !important;
+            color: white !important;
+            box-shadow: 0px 0px 12px rgba(41,121,255,0.5);
+        }
+        .stDownloadButton>button:hover {
+            background: linear-gradient(135deg, #1565c0, #0d47a1) !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -409,7 +419,7 @@ pagina = st.sidebar.radio(
 )
 
 # ============================================================
-# PÁGINA 1 — INÍCIO (COM DESCRIÇÃO ATUALIZADA DA METODOLOGIA)
+# PÁGINA 1 — INÍCIO (COM DESCRIÇÃO CORRIGIDA E COMPLETA)
 # ============================================================
 if pagina == "🏠 Início":
     st.markdown("<h1>Bem-vindo ao Sistema da ASSEUF</h1>", unsafe_allow_html=True)
@@ -472,7 +482,7 @@ if pagina == "🏠 Início":
             <b>Rota Curvelo:</b> Bruto R$ 8.000 | Passagens R$ 1.000 → Abate 10%: R$ 100 → Bruto ajustado: R$ 7.900<br>
             <b>Auxílio total:</b> R$ 5.000<br>
             <b>Distribuição proporcional:</b> 7L: R$ 5.000 × (9.800 / 17.700) = R$ 2.768 | Curvelo: R$ 2.232<br>
-            <b>Ajuste por diárias:</b> Se 7L rodou 5 dias a mais, recebe +20% do excedente...
+            <b>Ajuste por diárias:</b> Se 7L rodou 5 dias a mais que Curvelo, o cálculo do ajuste fino é aplicado automaticamente pelo sistema.
         </p>
         
         <h3>5. Líquido, Alunos Equivalentes e Mensalidade</h3>
@@ -522,8 +532,8 @@ if pagina == "🧮 Cadastro e Cálculo":
 
             for i in range(qtd_7l):
                 tipo = st.text_input(f"Tipo do veículo {i+1}", key=f"t7{i}")
-                valor = st.number_input(f"Valor da diária ({tipo})", min_value=0.0, step=10.0, key=f"v7{i}")
-                dias = st.number_input(f"Diárias rodadas ({tipo})", min_value=0, step=1, key=f"d7{i}")
+                valor = st.number_input(f"Valor da diária ({tipo if tipo else '...'})", min_value=0.0, step=10.0, key=f"v7{i}")
+                dias = st.number_input(f"Diárias rodadas ({tipo if tipo else '...'})", min_value=0, step=1, key=f"d7{i}")
                 if tipo:
                     veic_7l[tipo] = {"valor": valor, "dias": dias}
 
@@ -565,8 +575,8 @@ if pagina == "🧮 Cadastro e Cálculo":
 
             for i in range(qtd_cur):
                 tipo = st.text_input(f"Tipo do veículo {i+1}", key=f"tc{i}")
-                valor = st.number_input(f"Valor da diária ({tipo})", min_value=0.0, step=10.0, key=f"vc{i}")
-                dias = st.number_input(f"Diárias rodadas ({tipo})", min_value=0, step=1, key=f"dc{i}")
+                valor = st.number_input(f"Valor da diária ({tipo if tipo else '...'})", min_value=0.0, step=10.0, key=f"vc{i}")
+                dias = st.number_input(f"Diárias rodadas ({tipo if tipo else '...'})", min_value=0, step=1, key=f"dc{i}")
                 if tipo:
                     veic_cur[tipo] = {"valor": valor, "dias": dias}
 
@@ -619,6 +629,10 @@ if pagina == "🧮 Cadastro e Cálculo":
         bruto_aj_7l = bruto_7l - (0.10 * pass_7l)
         bruto_aj_cur = bruto_cur - (0.10 * pass_cur)
 
+        # Garantir que o bruto ajustado não seja negativo
+        bruto_aj_7l = max(0, bruto_aj_7l)
+        bruto_aj_cur = max(0, bruto_aj_cur)
+
         # Distribuição do auxílio proporcional ao bruto ajustado + ajuste 70/30
         aux_ideal_7l, aux_ideal_cur = distribuir_auxilio_por_diarias(
             aux_total, bruto_aj_7l, bruto_aj_cur, diarias_7l, diarias_cur
@@ -659,22 +673,4 @@ if pagina == "🧮 Cadastro e Cálculo":
             # Curvelo
             "bruto_cur": bruto_cur,
             "pass_cur": pass_cur,
-            "bruto_aj_cur": bruto_aj_cur,
-            "aux_ideal_cur": aux_ideal_cur,
-            "liquido_cur": liquido_cur,
-            "int_cur": int_cur,
-            "desc_cur": desc_cur,
-            "al_eq_cur": al_eq_cur,
-            "mensal_cur": mensal_cur,
-            "diarias_cur": diarias_cur,
-            "veic_cur": veic_qtd_cur,
-            "diaria_cur": diaria_motorista_cur,
-            "custo_extra_cur": custo_extra_cur,
-        }
-
-        st.success("✅ Cálculo realizado com a NOVA METODOLOGIA! Vá para a aba 'Relatórios e Gráficos'.")
-        st.balloons()
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-#
+            "br
