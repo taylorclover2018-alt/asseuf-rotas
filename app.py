@@ -676,4 +676,5 @@ if pagina == "🧮 Cadastro e Cálculo":
             "custo_extra_cur": custo_extra_cur,
         }
 
-        st.success("✅ Cálculo realizado com a NOVA METODOLOGIA! Vá para a
+        st.success("✅ Cálculo realizado com a NOVA METODOLOGIA! Vá para a aba 'Relatórios e Gráficos'.")
+        st
